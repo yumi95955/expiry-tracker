@@ -211,6 +211,31 @@
     .del-btn:hover { color: #e53935; background: #ffebee; }
     .del-btn:disabled { opacity: .4; cursor: wait; }
 
+    .qty-wrap {
+      display: flex; align-items: center; gap: 5px;
+      flex-shrink: 0;
+    }
+    .qty-btn {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 1.5px solid #dde1ea; background: #fafbff;
+      font-size: 1rem; line-height: 1; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: background .15s, border-color .15s;
+      flex-shrink: 0; color: #555;
+    }
+    .qty-btn:hover { background: #ede9ff; border-color: #6c63ff; color: #6c63ff; }
+    .qty-btn:disabled { opacity: .4; cursor: wait; }
+    .qty-input {
+      width: 42px; text-align: center;
+      font-weight: 700; font-size: 0.92rem; color: #1a1a2e;
+      border: 1.5px solid #dde1ea; border-radius: 7px;
+      padding: 2px 4px; background: #fafbff;
+      outline: none; transition: border-color .2s;
+    }
+    .qty-input:focus { border-color: #6c63ff; }
+    .qty-input.zero { color: #e53935; }
+    .qty-label { font-size: 0.75rem; color: #aaa; }
+
     .empty {
       text-align: center; padding: 40px 0;
       color: #aaa; font-size: 0.95rem;
@@ -241,7 +266,7 @@
     </div>
     <div class="sync-msg" id="syncMsg"></div>
     <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
-      시트 B열=상품이름&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)<br>
+      시트 B열=상품이름&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)&nbsp;·&nbsp;K열=재고수량<br>
       Apps Script 코드는 <code>apps-script.js</code> 파일 참고
     </div>
   </div>
@@ -394,6 +419,42 @@
     }
   }
 
+  async function changeQty(id, delta, btnEl) {
+    const items = load();
+    const item  = items.find(i => i.id === id);
+    if (!item) return;
+
+    const cur  = item.qty !== null && item.qty !== undefined ? item.qty : 0;
+    const next = Math.max(0, cur + delta);
+    await applyQty(id, next);
+  }
+
+  async function setQty(id, inputEl) {
+    const val = inputEl.value.trim();
+    if (val === '') return;
+    const next = Math.max(0, Math.round(Number(val)));
+    inputEl.value = next;
+    inputEl.classList.toggle('zero', next === 0);
+    await applyQty(id, next);
+  }
+
+  async function applyQty(id, next) {
+    const items = load();
+    const item  = items.find(i => i.id === id);
+    if (!item) return;
+    item.qty = next;
+    save(items);
+    render();
+
+    if (getUrl()) {
+      try {
+        await apiGet({ action: 'qty', id, qty: next });
+      } catch (e) {
+        setMsg('수량 업데이트 실패: ' + e.message, 'err');
+      }
+    }
+  }
+
   async function deleteItem(id, btnEl) {
     if (btnEl) btnEl.disabled = true;
     const items = load().filter(i => i.id !== id);
@@ -461,6 +522,9 @@
     items.forEach(item => {
       const days = daysLeft(item.date);
       const cls  = classify(days);
+      const qty  = item.qty;
+      const hasQty = qty !== null && qty !== undefined;
+      const qtyClass = hasQty && qty === 0 ? ' zero' : '';
 
       const div = document.createElement('div');
       div.className = `item ${cls}`;
@@ -469,6 +533,15 @@
         <div class="info">
           <div class="name" title="${item.name}">${item.name}</div>
           <div class="date">만료일: ${item.date}</div>
+        </div>
+        <div class="qty-wrap">
+          <button class="qty-btn" onclick="changeQty('${item.id}', -1, this)" title="감소">−</button>
+          <input class="qty-input${qtyClass}" type="number" min="0"
+            value="${hasQty ? qty : ''}" placeholder="—"
+            onchange="setQty('${item.id}', this)"
+            onkeydown="if(event.key==='Enter') this.blur()" />
+          <span class="qty-label">개</span>
+          <button class="qty-btn" onclick="changeQty('${item.id}', +1, this)" title="증가">＋</button>
         </div>
         <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>
       `;
