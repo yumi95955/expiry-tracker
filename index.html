@@ -198,7 +198,12 @@
     .item.ok       .badge { background: #e8f5e9; color: #1b5e20; }
 
     .info { flex: 1; min-width: 0; }
-    .info .name { font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .info .name {
+      font-weight: 600; font-size: 1rem;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+      line-height: 1.35;
+    }
     .info .date { font-size: 0.8rem; color: #888; margin-top: 2px; }
 
     .del-btn {
@@ -213,7 +218,7 @@
 
     .qty-wrap {
       display: flex; align-items: center; gap: 5px;
-      flex-shrink: 0;
+      margin-top: 8px;
     }
     .qty-btn {
       width: 26px; height: 26px; border-radius: 50%;
@@ -266,7 +271,7 @@
     </div>
     <div class="sync-msg" id="syncMsg"></div>
     <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
-      시트 B열=상품이름&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)&nbsp;·&nbsp;K열=재고수량<br>
+      시트 B열=상품이름&nbsp;·&nbsp;D열=재고수량&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)<br>
       Apps Script 코드는 <code>apps-script.js</code> 파일 참고
     </div>
   </div>
@@ -531,17 +536,17 @@
       div.innerHTML = `
         <div class="badge">${badgeText(days)}</div>
         <div class="info">
-          <div class="name" title="${item.name}">${item.name}</div>
+          <div class="name">${item.name}</div>
           <div class="date">만료일: ${item.date}</div>
-        </div>
-        <div class="qty-wrap">
-          <button class="qty-btn" onclick="changeQty('${item.id}', -1, this)" title="감소">−</button>
-          <input class="qty-input${qtyClass}" type="number" min="0"
-            value="${hasQty ? qty : ''}" placeholder="—"
-            onchange="setQty('${item.id}', this)"
-            onkeydown="if(event.key==='Enter') this.blur()" />
-          <span class="qty-label">개</span>
-          <button class="qty-btn" onclick="changeQty('${item.id}', +1, this)" title="증가">＋</button>
+          <div class="qty-wrap">
+            <button class="qty-btn" onclick="changeQty('${item.id}', -1, this)" title="감소">−</button>
+            <input class="qty-input${qtyClass}" type="number" min="0"
+              value="${hasQty ? qty : ''}" placeholder="—"
+              onchange="setQty('${item.id}', this)"
+              onkeydown="if(event.key==='Enter') this.blur()" />
+            <span class="qty-label">개</span>
+            <button class="qty-btn" onclick="changeQty('${item.id}', +1, this)" title="증가">＋</button>
+          </div>
         </div>
         <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>
       `;
