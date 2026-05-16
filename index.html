@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>유통기한 관리</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      padding: 24px 16px 40px;
+      color: #1a1a2e;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 20px;
+      color: #1a1a2e;
+      letter-spacing: -0.5px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 16px;
+      padding: 18px 20px;
+      box-shadow: 0 2px 12px rgba(0,0,0,.08);
+      max-width: 520px;
+      margin: 0 auto 14px;
+    }
+
+    /* ── sheet connect card ── */
+    .connect-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .connect-header-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .dot {
+      width: 9px; height: 9px;
+      border-radius: 50%;
+      background: #ccc;
+      flex-shrink: 0;
+    }
+    .dot.connected { background: #43a047; }
+    .dot.syncing   { background: #fb8c00; animation: pulse .8s infinite alternate; }
+    .dot.error     { background: #e53935; }
+
+    @keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
+
+    .chevron { font-size: 0.75rem; color: #aaa; transition: transform .2s; }
+    .chevron.open { transform: rotate(180deg); }
+
+    .connect-body { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .connect-body.hidden { display: none; }
+
+    .connect-body input[type="text"] {
+      width: 100%;
+      padding: 9px 12px;
+      border: 1.5px solid #dde1ea;
+      border-radius: 10px;
+      font-size: 0.88rem;
+      outline: none;
+      background: #fafbff;
+      color: #1a1a2e;
+      transition: border-color .2s;
+    }
+    .connect-body input[type="text"]:focus { border-color: #6c63ff; }
+
+    .connect-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .btn {
+      padding: 8px 16px;
+      border: none;
+      border-radius: 9px;
+      font-size: 0.88rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .2s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn-primary { background: #6c63ff; color: #fff; }
+    .btn-primary:hover { background: #5a52d5; }
+    .btn-ghost { background: #f0f2f5; color: #555; }
+    .btn-ghost:hover { background: #e4e6eb; }
+    .btn-danger { background: #ffebee; color: #c62828; }
+    .btn-danger:hover { background: #ffcdd2; }
+    .btn-green { background: #e8f5e9; color: #1b5e20; }
+    .btn-green:hover { background: #c8e6c9; }
+
+    .sync-msg {
+      font-size: 0.8rem;
+      color: #888;
+      min-height: 18px;
+    }
+    .sync-msg.err { color: #e53935; }
+    .sync-msg.ok  { color: #2e7d32; }
+
+    /* ── add form ── */
+    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+    .form-row input {
+      flex: 1 1 140px;
+      padding: 10px 14px;
+      border: 1.5px solid #dde1ea;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      outline: none;
+      background: #fafbff;
+      color: #1a1a2e;
+      transition: border-color .2s;
+    }
+    .form-row input:focus { border-color: #6c63ff; }
+
+    .form-row .btn-add {
+      padding: 10px 18px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 10px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background .2s, transform .1s;
+    }
+    .form-row .btn-add:hover { background: #5a52d5; }
+    .form-row .btn-add:active { transform: scale(.97); }
+    .form-row .btn-add:disabled { background: #bbb; cursor: not-allowed; }
+
+    /* ── stats ── */
+    .stats {
+      display: flex; gap: 8px; justify-content: center;
+      flex-wrap: wrap; margin-bottom: 4px;
+    }
+    .stat-chip {
+      padding: 4px 14px; border-radius: 20px;
+      font-size: 0.82rem; font-weight: 600;
+      border: none; cursor: pointer;
+      transition: transform .1s, box-shadow .15s, opacity .15s;
+    }
+    .stat-chip:hover  { transform: translateY(-1px); box-shadow: 0 2px 8px rgba(0,0,0,.12); }
+    .stat-chip:active { transform: scale(.96); }
+    .stat-chip.active { box-shadow: 0 0 0 2.5px currentColor; }
+    .stat-chip.dimmed { opacity: .35; }
+    .chip-total  { background: #ede9ff; color: #6c63ff; }
+    .chip-urgent { background: #fff0f0; color: #e53935; }
+    .chip-warn   { background: #fff8e6; color: #f57c00; }
+    .chip-ok     { background: #e8f5e9; color: #2e7d32; }
+
+    /* ── list ── */
+    .list { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
+
+    .item {
+      background: #fff;
+      border-radius: 14px;
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      border-left: 5px solid transparent;
+      transition: transform .15s, box-shadow .15s;
+      animation: fadeIn .22s ease;
+    }
+    .item:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.10); }
+
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
+
+    .item.expired  { border-left-color: #9e9e9e; opacity: .65; }
+    .item.critical { border-left-color: #e53935; }
+    .item.warning  { border-left-color: #f57c00; }
+    .item.ok       { border-left-color: #43a047; }
+
+    .badge {
+      min-width: 54px; text-align: center;
+      padding: 4px 8px; border-radius: 8px;
+      font-size: 0.78rem; font-weight: 700;
+      line-height: 1.35; flex-shrink: 0;
+    }
+    .item.expired  .badge { background: #f5f5f5; color: #757575; }
+    .item.critical .badge { background: #ffebee; color: #c62828; }
+    .item.warning  .badge { background: #fff8e6; color: #e65100; }
+    .item.ok       .badge { background: #e8f5e9; color: #1b5e20; }
+
+    .info { flex: 1; min-width: 0; }
+    .info .name { font-weight: 600; font-size: 1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .info .date { font-size: 0.8rem; color: #888; margin-top: 2px; }
+
+    .del-btn {
+      background: none; border: none; cursor: pointer;
+      color: #bbb; font-size: 1.2rem; line-height: 1;
+      padding: 4px 6px; border-radius: 6px;
+      transition: color .2s, background .2s;
+      flex-shrink: 0;
+    }
+    .del-btn:hover { color: #e53935; background: #ffebee; }
+    .del-btn:disabled { opacity: .4; cursor: wait; }
+
+    .empty {
+      text-align: center; padding: 40px 0;
+      color: #aaa; font-size: 0.95rem;
+      max-width: 520px; margin: 0 auto;
+    }
+    .empty span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+
+<h1>유통기한 관리</h1>
+
+<!-- 구글 시트 연동 -->
+<div class="card" id="connectCard">
+  <div class="connect-header" onclick="toggleConnect()">
+    <div class="connect-header-left">
+      <div class="dot" id="statusDot"></div>
+      <span id="statusLabel">구글 시트 연동</span>
+    </div>
+    <span class="chevron" id="chevron">▼</span>
+  </div>
+  <div class="connect-body hidden" id="connectBody">
+    <input type="text" id="scriptUrl" placeholder="Apps Script 웹 앱 URL 붙여넣기" />
+    <div class="connect-btns">
+      <button class="btn btn-primary" onclick="connectSheet()">연결 · 가져오기</button>
+      <button class="btn btn-green"   onclick="syncFromSheet()">↻ 새로고침</button>
+      <button class="btn btn-danger"  onclick="disconnectSheet()">연결 해제</button>
+    </div>
+    <div class="sync-msg" id="syncMsg"></div>
+    <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
+      시트 B열=상품이름&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)<br>
+      Apps Script 코드는 <code>apps-script.js</code> 파일 참고
+    </div>
+  </div>
+</div>
+
+<!-- 추가 폼 -->
+<div class="card">
+  <div class="form-row">
+    <input id="nameInput" type="text" placeholder="제품명" maxlength="40" />
+    <input id="dateInput" type="date" />
+    <button class="btn-add" id="addBtn" onclick="addItem()">추가</button>
+  </div>
+</div>
+
+<div class="stats" id="stats"></div>
+<div class="list"  id="list"></div>
+<div class="empty" id="empty" style="display:none">
+  <span>📦</span>제품을 추가해 보세요.
+</div>
+
+<script>
+  const STORAGE_KEY  = 'expiry_items';
+  const SCRIPT_KEY   = 'gsheet_script_url';
+
+  // ── storage ──────────────────────────────────
+
+  function load()       { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+  function save(items)  { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+  function getUrl()     { return localStorage.getItem(SCRIPT_KEY) || ''; }
+  function saveUrl(url) { localStorage.setItem(SCRIPT_KEY, url); }
+
+  // ── date / classify ───────────────────────────
+
+  function daysLeft(dateStr) {
+    const t = new Date(); t.setHours(0,0,0,0);
+    const e = new Date(dateStr); e.setHours(0,0,0,0);
+    return Math.round((e - t) / 86400000);
+  }
+
+  function classify(days) {
+    if (days < 0)  return 'expired';
+    if (days <= 3) return 'critical';
+    if (days <= 7) return 'warning';
+    return 'ok';
+  }
+
+  function badgeText(days) {
+    if (days < 0)   return `만료\n${Math.abs(days)}일 전`;
+    if (days === 0) return '오늘\n만료';
+    return `${days}일\n남음`;
+  }
+
+  const PRIORITY = { expired: 0, critical: 1, warning: 2, ok: 3 };
+
+  function sortItems(items) {
+    return [...items].sort((a, b) => {
+      const pa = PRIORITY[classify(daysLeft(a.date))];
+      const pb = PRIORITY[classify(daysLeft(b.date))];
+      if (pa !== pb) return pa - pb;
+      return new Date(a.date) - new Date(b.date);
+    });
+  }
+
+  let activeFilter = null;
+
+  function setFilter(type) {
+    activeFilter = (activeFilter === type) ? null : type;
+    render();
+  }
+
+  // ── API ──────────────────────────────────────
+
+  async function apiGet(params) {
+    const url = getUrl();
+    if (!url) throw new Error('URL 없음');
+    const qs = new URLSearchParams(params).toString();
+    const res = await fetch(`${url}?${qs}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const json = await res.json();
+    if (json.error) throw new Error(json.error);
+    return json;
+  }
+
+  // ── sheet connect / sync ──────────────────────
+
+  function toggleConnect() {
+    const body = document.getElementById('connectBody');
+    const chev = document.getElementById('chevron');
+    const open = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', open);
+    chev.classList.toggle('open', !open);
+    if (!open) document.getElementById('scriptUrl').value = getUrl();
+  }
+
+  async function connectSheet() {
+    const url = document.getElementById('scriptUrl').value.trim();
+    if (!url) { setMsg('URL을 입력해 주세요.', 'err'); return; }
+    saveUrl(url);
+    await syncFromSheet();
+  }
+
+  async function syncFromSheet() {
+    if (!getUrl()) { setMsg('먼저 URL을 연결해 주세요.', 'err'); return; }
+    setDot('syncing'); setMsg('시트에서 가져오는 중…');
+    try {
+      const data = await apiGet({ action: 'list' });
+      save(data.items);
+      setDot('connected');
+      setMsg(`완료 · ${data.items.length}개 항목`, 'ok');
+      render();
+    } catch (e) {
+      setDot('error'); setMsg('오류: ' + e.message, 'err');
+    }
+  }
+
+  function disconnectSheet() {
+    localStorage.removeItem(SCRIPT_KEY);
+    setDot(''); setMsg('');
+    document.getElementById('scriptUrl').value = '';
+    render();
+  }
+
+  // ── add / delete ──────────────────────────────
+
+  async function addItem() {
+    const name = document.getElementById('nameInput').value.trim();
+    const date = document.getElementById('dateInput').value;
+    if (!name) { alert('제품명을 입력해 주세요.'); return; }
+    if (!date) { alert('유통기한을 선택해 주세요.'); return; }
+
+    const id    = 'id_' + Date.now();
+    const items = load();
+    items.push({ id, name, date });
+    save(items);
+
+    document.getElementById('nameInput').value = '';
+    document.getElementById('dateInput').value = '';
+    document.getElementById('nameInput').focus();
+    render();
+
+    // 시트 연동 중이면 비동기로 push
+    if (getUrl()) {
+      setDot('syncing');
+      try {
+        await apiGet({ action: 'add', id, name, date });
+        setDot('connected'); setMsg('시트에 추가됨', 'ok');
+      } catch (e) {
+        setDot('error'); setMsg('시트 추가 실패: ' + e.message, 'err');
+      }
+    }
+  }
+
+  async function deleteItem(id, btnEl) {
+    if (btnEl) btnEl.disabled = true;
+    const items = load().filter(i => i.id !== id);
+    save(items);
+    render();
+
+    if (getUrl()) {
+      setDot('syncing');
+      try {
+        await apiGet({ action: 'delete', id });
+        setDot('connected'); setMsg('시트에서 삭제됨', 'ok');
+      } catch (e) {
+        setDot('error'); setMsg('시트 삭제 실패: ' + e.message, 'err');
+      }
+    }
+  }
+
+  // ── ui helpers ────────────────────────────────
+
+  function setDot(state) {
+    const d = document.getElementById('statusDot');
+    d.className = 'dot' + (state ? ' ' + state : '');
+    const labels = { connected: '구글 시트 연동됨', syncing: '동기화 중…', error: '연동 오류', '': '구글 시트 연동' };
+    document.getElementById('statusLabel').textContent = labels[state] ?? '구글 시트 연동';
+  }
+
+  function setMsg(text, type = '') {
+    const el = document.getElementById('syncMsg');
+    el.textContent = text;
+    el.className = 'sync-msg' + (type ? ' ' + type : '');
+  }
+
+  // ── render ────────────────────────────────────
+
+  function render() {
+    const all     = sortItems(load());
+    const listEl  = document.getElementById('list');
+    const emptyEl = document.getElementById('empty');
+    const statsEl = document.getElementById('stats');
+
+    listEl.innerHTML = '';
+
+    if (!all.length) {
+      emptyEl.style.display = 'block';
+      statsEl.innerHTML = '';
+      return;
+    }
+    emptyEl.style.display = 'none';
+
+    // 전체 기준 카운트 (칩 숫자는 필터 무관하게 항상 전체 수)
+    const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
+    all.forEach(item => counts[classify(daysLeft(item.date))]++);
+
+    // 필터 적용
+    const items = activeFilter
+      ? all.filter(item => {
+          const cls = classify(daysLeft(item.date));
+          if (activeFilter === 'urgent') return cls === 'expired' || cls === 'critical';
+          if (activeFilter === 'warning') return cls === 'warning';
+          if (activeFilter === 'ok') return cls === 'ok';
+          return true;
+        })
+      : all;
+
+    items.forEach(item => {
+      const days = daysLeft(item.date);
+      const cls  = classify(days);
+
+      const div = document.createElement('div');
+      div.className = `item ${cls}`;
+      div.innerHTML = `
+        <div class="badge">${badgeText(days)}</div>
+        <div class="info">
+          <div class="name" title="${item.name}">${item.name}</div>
+          <div class="date">만료일: ${item.date}</div>
+        </div>
+        <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>
+      `;
+      listEl.appendChild(div);
+    });
+
+    const urgent = counts.critical + counts.expired;
+    const chips = [
+      { key: null,      cls: 'chip-total',  label: `전체 ${all.length}` },
+      { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,          show: urgent > 0 },
+      { key: 'warning', cls: 'chip-warn',   label: `주의 ${counts.warning}`,  show: counts.warning > 0 },
+      { key: 'ok',      cls: 'chip-ok',     label: `안전 ${counts.ok}`,       show: counts.ok > 0 },
+    ];
+
+    statsEl.innerHTML = chips
+      .filter(c => c.key === null || c.show)
+      .map(c => {
+        const isActive  = activeFilter === c.key;
+        const isDimmed  = activeFilter !== null && !isActive;
+        const cls = ['stat-chip', c.cls, isActive ? 'active' : '', isDimmed ? 'dimmed' : ''].join(' ').trim();
+        const fn  = c.key ? `setFilter('${c.key}')` : `setFilter(null)`;
+        return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
+      }).join('');
+  }
+
+  // ── keyboard ──────────────────────────────────
+
+  document.getElementById('nameInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('dateInput').focus();
+  });
+  document.getElementById('dateInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') addItem();
+  });
+
+  // ── init ─────────────────────────────────────
+
+  if (getUrl()) {
+    setDot('connected');
+    document.getElementById('scriptUrl').value = getUrl();
+    syncFromSheet(); // 페이지 열릴 때 시트에서 자동 동기화
+  } else {
+    render();
+  }
+</script>
+</body>
+</html>
