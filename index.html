@@ -161,6 +161,7 @@
     .chip-urgent { background: #fff0f0; color: #e53935; }
     .chip-warn   { background: #fff8e6; color: #f57c00; }
     .chip-ok     { background: #e8f5e9; color: #2e7d32; }
+    .chip-order  { background: #fff3e0; color: #e65100; }
 
     /* ── list ── */
     .list { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
@@ -340,23 +341,7 @@
 
 <div class="stats" id="stats"></div>
 
-<button class="order-btn" id="orderBtn" onclick="openOrderModal()" style="display:none">
-  🛒 발주 리스트 보기
-</button>
-
 <div class="list" id="list"></div>
-
-<!-- 발주 리스트 모달 -->
-<div class="modal-backdrop" id="modalBackdrop" onclick="closeModalOutside(event)">
-  <div class="modal">
-    <div class="modal-title">🛒 발주 리스트</div>
-    <div class="modal-list" id="modalList"></div>
-    <div class="modal-btns">
-      <button class="btn btn-primary" onclick="copyOrderList()" style="flex:1">복사하기</button>
-      <button class="btn btn-ghost"   onclick="closeOrderModal()" style="flex:1">닫기</button>
-    </div>
-  </div>
-</div>
 <div class="empty" id="empty" style="display:none">
   <span>📦</span>제품을 추가해 보세요.
 </div>
@@ -584,14 +569,8 @@
     }
     emptyEl.style.display = 'none';
 
-    // 발주 필요 수
     orderedSet = loadOrdered();
     const orderCount = all.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT).length;
-    const orderBtn = document.getElementById('orderBtn');
-    if (orderBtn) {
-      orderBtn.style.display = orderCount > 0 ? 'flex' : 'none';
-      orderBtn.textContent = `🛒 발주 리스트 보기 (${orderCount}개 상품)`;
-    }
 
     // 전체 기준 카운트 (칩 숫자는 필터 무관하게 항상 전체 수)
     const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
@@ -601,9 +580,10 @@
     const items = activeFilter
       ? all.filter(item => {
           const cls = classify(daysLeft(item.date));
-          if (activeFilter === 'urgent') return cls === 'expired' || cls === 'critical';
+          if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
           if (activeFilter === 'warning') return cls === 'warning';
-          if (activeFilter === 'ok') return cls === 'ok';
+          if (activeFilter === 'ok')      return cls === 'ok';
+          if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
           return true;
         })
       : all;
@@ -648,9 +628,10 @@
     const urgent = counts.critical + counts.expired;
     const chips = [
       { key: null,      cls: 'chip-total',  label: `전체 ${all.length}` },
-      { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,          show: urgent > 0 },
-      { key: 'warning', cls: 'chip-warn',   label: `주의 ${counts.warning}`,  show: counts.warning > 0 },
-      { key: 'ok',      cls: 'chip-ok',     label: `안전 ${counts.ok}`,       show: counts.ok > 0 },
+      { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,              show: urgent > 0 },
+      { key: 'warning', cls: 'chip-warn',   label: `주의 ${counts.warning}`,      show: counts.warning > 0 },
+      { key: 'ok',      cls: 'chip-ok',     label: `안전 ${counts.ok}`,           show: counts.ok > 0 },
+      { key: 'order',   cls: 'chip-order',  label: `🛒 발주필요 ${orderCount}`,   show: orderCount > 0 },
     ];
 
     statsEl.innerHTML = chips
@@ -674,32 +655,6 @@
     render();
   }
 
-  function openOrderModal() {
-    const items = sortItems(load());
-    const needOrder = items.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT);
-    const text = needOrder.length
-      ? needOrder.map(i => `• ${i.name} (재고 ${i.qty}개)`).join('\n')
-      : '발주 필요 상품이 없어요 👍';
-    document.getElementById('modalList').textContent = text;
-    document.getElementById('modalBackdrop').classList.add('open');
-  }
-
-  function closeOrderModal() {
-    document.getElementById('modalBackdrop').classList.remove('open');
-  }
-
-  function closeModalOutside(e) {
-    if (e.target === document.getElementById('modalBackdrop')) closeOrderModal();
-  }
-
-  function copyOrderList() {
-    const text = document.getElementById('modalList').textContent;
-    navigator.clipboard.writeText(text).then(() => {
-      const btn = document.querySelector('.modal-btns .btn-primary');
-      btn.textContent = '복사됨 ✓';
-      setTimeout(() => btn.textContent = '복사하기', 1500);
-    });
-  }
 
   // ── keyboard ──────────────────────────────────
 
