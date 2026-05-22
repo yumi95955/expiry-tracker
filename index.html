@@ -241,6 +241,58 @@
     .qty-input.zero { color: #e53935; }
     .qty-label { font-size: 0.75rem; color: #aaa; }
 
+    /* ── 발주 뱃지 ── */
+    .order-badge {
+      display: inline-block; margin-top: 6px;
+      padding: 2px 8px; border-radius: 6px;
+      font-size: 0.72rem; font-weight: 700;
+      background: #ffebee; color: #c62828;
+    }
+
+    /* ── 발주완료 체크 ── */
+    .ordered-check {
+      display: flex; align-items: center; gap: 5px;
+      margin-top: 6px; cursor: pointer; user-select: none;
+      font-size: 0.8rem; color: #aaa;
+    }
+    .ordered-check input { width: 15px; height: 15px; cursor: pointer; accent-color: #6c63ff; }
+    .item.ordered { opacity: .45; }
+    .item.ordered .name { text-decoration: line-through; }
+
+    /* ── 발주 리스트 모달 ── */
+    .modal-backdrop {
+      display: none; position: fixed; inset: 0;
+      background: rgba(0,0,0,.4); z-index: 100;
+      align-items: center; justify-content: center; padding: 20px;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #fff; border-radius: 18px; padding: 22px;
+      width: 100%; max-width: 480px; max-height: 80vh;
+      display: flex; flex-direction: column; gap: 14px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.18);
+    }
+    .modal-title { font-size: 1.1rem; font-weight: 700; }
+    .modal-list {
+      overflow-y: auto; flex: 1;
+      border: 1.5px solid #f0f2f5; border-radius: 10px;
+      padding: 12px; font-size: 0.9rem; line-height: 2;
+      white-space: pre-wrap; color: #1a1a2e;
+    }
+    .modal-btns { display: flex; gap: 8px; }
+
+    /* ── 발주 버튼 ── */
+    .order-btn {
+      max-width: 520px; margin: 0 auto 10px;
+      display: flex; width: 100%;
+      padding: 11px; background: #fff0f0;
+      border: none; border-radius: 12px;
+      color: #c62828; font-weight: 700; font-size: 0.95rem;
+      cursor: pointer; gap: 6px; justify-content: center;
+      align-items: center; transition: background .2s;
+    }
+    .order-btn:hover { background: #ffcdd2; }
+
     .empty {
       text-align: center; padding: 40px 0;
       color: #aaa; font-size: 0.95rem;
@@ -287,14 +339,37 @@
 </div>
 
 <div class="stats" id="stats"></div>
-<div class="list"  id="list"></div>
+
+<button class="order-btn" id="orderBtn" onclick="openOrderModal()" style="display:none">
+  🛒 발주 리스트 보기
+</button>
+
+<div class="list" id="list"></div>
+
+<!-- 발주 리스트 모달 -->
+<div class="modal-backdrop" id="modalBackdrop" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <div class="modal-title">🛒 발주 리스트</div>
+    <div class="modal-list" id="modalList"></div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="copyOrderList()" style="flex:1">복사하기</button>
+      <button class="btn btn-ghost"   onclick="closeOrderModal()" style="flex:1">닫기</button>
+    </div>
+  </div>
+</div>
 <div class="empty" id="empty" style="display:none">
   <span>📦</span>제품을 추가해 보세요.
 </div>
 
 <script>
-  const STORAGE_KEY  = 'expiry_items';
-  const SCRIPT_KEY   = 'gsheet_script_url';
+  const STORAGE_KEY   = 'expiry_items';
+  const SCRIPT_KEY    = 'gsheet_script_url';
+  const ORDERED_KEY   = 'ordered_ids';
+  const ORDER_LIMIT   = 5; // 발주 필요 기준 수량
+
+  function loadOrdered()        { try { return new Set(JSON.parse(localStorage.getItem(ORDERED_KEY)) || []); } catch { return new Set(); } }
+  function saveOrdered(set)     { localStorage.setItem(ORDERED_KEY, JSON.stringify([...set])); }
+  let orderedSet = loadOrdered();
 
   // ── storage ──────────────────────────────────
 
@@ -509,6 +584,15 @@
     }
     emptyEl.style.display = 'none';
 
+    // 발주 필요 수
+    orderedSet = loadOrdered();
+    const orderCount = all.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT).length;
+    const orderBtn = document.getElementById('orderBtn');
+    if (orderBtn) {
+      orderBtn.style.display = orderCount > 0 ? 'flex' : 'none';
+      orderBtn.textContent = `🛒 발주 리스트 보기 (${orderCount}개 상품)`;
+    }
+
     // 전체 기준 카운트 (칩 숫자는 필터 무관하게 항상 전체 수)
     const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
     all.forEach(item => counts[classify(daysLeft(item.date))]++);
@@ -527,17 +611,20 @@
     items.forEach(item => {
       const days = daysLeft(item.date);
       const cls  = classify(days);
-      const qty  = item.qty;
-      const hasQty = qty !== null && qty !== undefined;
+      const qty     = item.qty;
+      const hasQty  = qty !== null && qty !== undefined;
       const qtyClass = hasQty && qty === 0 ? ' zero' : '';
+      const needsOrder = hasQty && qty <= 5;
+      const isOrdered  = orderedSet.has(item.id);
 
       const div = document.createElement('div');
-      div.className = `item ${cls}`;
+      div.className = `item ${cls}${isOrdered ? ' ordered' : ''}`;
       div.innerHTML = `
         <div class="badge">${badgeText(days)}</div>
         <div class="info">
           <div class="name">${item.name}</div>
           <div class="date">만료일: ${item.date}</div>
+          ${needsOrder ? `<span class="order-badge">🛒 발주필요 (${qty}개)</span>` : ''}
           <div class="qty-wrap">
             <button class="qty-btn" onclick="changeQty('${item.id}', -1, this)" title="감소">−</button>
             <input class="qty-input${qtyClass}" type="number" min="0"
@@ -547,6 +634,11 @@
             <span class="qty-label">개</span>
             <button class="qty-btn" onclick="changeQty('${item.id}', +1, this)" title="증가">＋</button>
           </div>
+          <label class="ordered-check">
+            <input type="checkbox" ${isOrdered ? 'checked' : ''}
+              onchange="toggleOrdered('${item.id}', this.checked)" />
+            발주완료
+          </label>
         </div>
         <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>
       `;
@@ -570,6 +662,43 @@
         const fn  = c.key ? `setFilter('${c.key}')` : `setFilter(null)`;
         return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
       }).join('');
+  }
+
+  // ── 발주 ─────────────────────────────────────
+
+  function toggleOrdered(id, checked) {
+    orderedSet = loadOrdered();
+    if (checked) orderedSet.add(id);
+    else         orderedSet.delete(id);
+    saveOrdered(orderedSet);
+    render();
+  }
+
+  function openOrderModal() {
+    const items = sortItems(load());
+    const needOrder = items.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT);
+    const text = needOrder.length
+      ? needOrder.map(i => `• ${i.name} (재고 ${i.qty}개)`).join('\n')
+      : '발주 필요 상품이 없어요 👍';
+    document.getElementById('modalList').textContent = text;
+    document.getElementById('modalBackdrop').classList.add('open');
+  }
+
+  function closeOrderModal() {
+    document.getElementById('modalBackdrop').classList.remove('open');
+  }
+
+  function closeModalOutside(e) {
+    if (e.target === document.getElementById('modalBackdrop')) closeOrderModal();
+  }
+
+  function copyOrderList() {
+    const text = document.getElementById('modalList').textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.modal-btns .btn-primary');
+      btn.textContent = '복사됨 ✓';
+      setTimeout(() => btn.textContent = '복사하기', 1500);
+    });
   }
 
   // ── keyboard ──────────────────────────────────
