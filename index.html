@@ -659,6 +659,19 @@ async function apiGet(params) {
   return json;
 }
 
+async function apiPost(action, data) {
+  const url = getUrl();
+  if (!url) throw new Error('URL 없음');
+  const res = await fetch(url, {
+    method: 'POST',
+    body: JSON.stringify({ action, ...data })
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
 function toggleConnect() {
   const body = document.getElementById('connectBody');
   const chev = document.getElementById('chevron');
@@ -672,7 +685,7 @@ async function connectSheet() {
   const url = document.getElementById('scriptUrl').value.trim();
   if (!url) { setMsg('URL을 입력해 주세요.', 'err'); return; }
   saveUrl(url);
-  await syncFromSheet();
+  await syncAllFromSheet();
 }
 
 async function syncFromSheet() {
@@ -687,6 +700,54 @@ async function syncFromSheet() {
   } catch (e) {
     setDot('error'); setMsg('오류: ' + e.message, 'err');
   }
+}
+
+async function syncAllFromSheet() {
+  await syncFromSheet();
+  if (!getUrl()) return;
+
+  try {
+    const cl = await apiGet({ action: 'checklist_load' });
+    if (cl.state && Object.keys(cl.state).length > 0) {
+      localStorage.setItem(CHECK_KEY, JSON.stringify(cl.state));
+      if (cl.savedDate) localStorage.setItem(CHECK_DATE_KEY, cl.savedDate);
+      renderChecklist();
+    }
+  } catch(e) {}
+
+  try {
+    const yg = await apiGet({ action: 'yogurt_load' });
+    if (yg.logs) { saveYogurtLogs(yg.logs); renderReminders(); }
+  } catch(e) {}
+
+  try {
+    const ag = await apiGet({ action: 'agent_load' });
+    if (ag.histories) {
+      ag.histories.forEach((h, i) => {
+        chatHistories[i] = h.map(m => ({
+          role: m.role,
+          content: m.role === 'bot' ? m.content.replace(/\n/g, '<br>') : m.content
+        }));
+      });
+    }
+  } catch(e) {}
+}
+
+function sheetSaveChecklist() {
+  if (!getUrl()) return;
+  const state     = loadCheckState();
+  const savedDate = localStorage.getItem(CHECK_DATE_KEY) || '';
+  apiPost('checklist_save', { state, savedDate }).catch(() => {});
+}
+
+function sheetSaveYogurt() {
+  if (!getUrl()) return;
+  apiPost('yogurt_save', { logs: loadYogurtLogs() }).catch(() => {});
+}
+
+function sheetAppendAgent(agentIdx, role, content) {
+  if (!getUrl()) return;
+  apiPost('agent_append', { agentIdx, role, content }).catch(() => {});
 }
 
 function disconnectSheet() {
@@ -997,6 +1058,7 @@ function toggleCheck(groupKey, idx) {
   const k = groupKey + '_' + idx;
   state[k] = !state[k];
   saveCheckState(state);
+  sheetSaveChecklist();
   renderChecklist();
 }
 
@@ -1159,6 +1221,7 @@ async function sendChat() {
   const history = chatHistories[selectedAgentIdx];
   const agent   = agents[selectedAgentIdx];
   history.push({ role: 'user', content: text });
+  sheetAppendAgent(selectedAgentIdx, 'user', text);
   renderChat();
 
   // 로딩 버블
@@ -1218,6 +1281,7 @@ async function sendChat() {
     if (!reply) throw new Error('응답 형식이 올바르지 않습니다: ' + JSON.stringify(data));
     area.removeChild(loading);
     history.push({ role: 'bot', content: reply.replace(/\n/g, '<br>') });
+    sheetAppendAgent(selectedAgentIdx, 'bot', reply);
     renderChat();
   } catch (e) {
     area.removeChild(loading);
@@ -1242,6 +1306,7 @@ function logYogurt() {
   removeDate.setDate(removeDate.getDate() + 7);
   logs.unshift({ filled: d, remove: removeDate.toISOString().split('T')[0] });
   saveYogurtLogs(logs);
+  sheetSaveYogurt();
   document.getElementById('yogurt-date').value = '';
   renderReminders();
 }
@@ -1345,7 +1410,7 @@ document.getElementById('yogurt-date').value = now.toISOString().split('T')[0];
 if (getUrl()) {
   setDot('connected');
   document.getElementById('scriptUrl').value = getUrl();
-  syncFromSheet();
+  syncAllFromSheet();
 } else {
   renderExpiry();
 }
