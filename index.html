@@ -512,6 +512,7 @@
   </div>
 
   <div class="stats" id="stats"></div>
+  <div id="order-subfilter"></div>
   <div class="exp-list" id="list"></div>
   <div class="exp-empty" id="empty" style="display:none">
     <span>🔍</span>검색 결과가 없어요.
@@ -649,7 +650,16 @@ function sortItems(items) {
 }
 
 let activeFilter = null;
-function setFilter(type) { activeFilter = (activeFilter === type) ? null : type; renderExpiry(); }
+let orderZeroOnly = false;
+function setFilter(type) {
+  activeFilter = (activeFilter === type) ? null : type;
+  orderZeroOnly = false;
+  renderExpiry();
+}
+function setOrderZero(zeroOnly) {
+  orderZeroOnly = zeroOnly;
+  renderExpiry();
+}
 
 let searchQuery = '';
 function setSearch(val) {
@@ -897,13 +907,13 @@ function renderExpiry() {
       if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
       if (activeFilter === 'warning') return cls === 'warning';
       if (activeFilter === 'ok')      return cls === 'ok';
-      if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
+      if (activeFilter === 'order') {
+        if (item.qty === null || item.qty === undefined) return false;
+        return orderZeroOnly ? item.qty === 0 : item.qty >= 1 && item.qty <= ORDER_LIMIT;
+      }
       return true;
     });
-    // 발주필요 탭: 재고 적은 순(0개부터) 정렬
-    if (activeFilter === 'order') {
-      items = [...items].sort((a, b) => (a.qty ?? Infinity) - (b.qty ?? Infinity));
-    }
+    // 발주필요: 날짜 오름차순 (sortItems 결과 유지), 0개 탭도 날짜순
   }
   items.forEach(item => {
     const days = daysLeft(item.date);
@@ -940,6 +950,7 @@ function renderExpiry() {
     listEl.appendChild(div);
   });
   const urgent = counts.critical + counts.expired;
+  const zeroCount = all.filter(i => i.qty === 0).length;
   const chips = [
     { key: null,      cls: 'chip-total',  label: `전체 ${all.length}` },
     { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,              show: urgent > 0 },
@@ -956,6 +967,22 @@ function renderExpiry() {
       const fn  = c.key ? `setFilter('${c.key}')` : `setFilter(null)`;
       return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
     }).join('');
+
+  // 발주필요 탭 활성화 시 0개 서브필터 칩 표시
+  const subEl = document.getElementById('order-subfilter');
+  if (activeFilter === 'order') {
+    subEl.innerHTML = `
+      <div style="display:flex;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+        <button onclick="setOrderZero(false)" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${!orderZeroOnly ? '#6c63ff' : '#dde1ea'};background:${!orderZeroOnly ? '#ede9ff' : '#fff'};color:${!orderZeroOnly ? '#6c63ff' : '#888'};font-size:0.82rem;font-weight:600;cursor:pointer">
+          🛒 1~5개 (${orderCount - zeroCount > 0 ? orderCount - zeroCount : all.filter(i=>i.qty>=1&&i.qty<=ORDER_LIMIT).length}개 상품)
+        </button>
+        <button onclick="setOrderZero(true)" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${orderZeroOnly ? '#e53935' : '#dde1ea'};background:${orderZeroOnly ? '#ffebee' : '#fff'};color:${orderZeroOnly ? '#c62828' : '#888'};font-size:0.82rem;font-weight:600;cursor:pointer">
+          ⛔ 0개 단종예정 (${zeroCount}개 상품)
+        </button>
+      </div>`;
+  } else {
+    subEl.innerHTML = '';
+  }
 }
 
 document.getElementById('searchInput').addEventListener('keydown', e => {
