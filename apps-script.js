@@ -2,7 +2,10 @@
  * 제로초이스 무인 편의점 - Google Apps Script
  *
  * 시트 탭 구조:
- *   [재고수량및유통기한]  B=상품이름  D=재고수량  H=유통기한
+ *   [무잉 데이터]         1~4행 헤더, 5행~데이터
+ *                         C=상품이름  D=바코드  F=재고수량  G=입고가  H=판매가
+ *   [재고수량및유통기한]  1행 헤더, 2행~데이터
+ *                         B=상품이름  C=바코드  H=유통기한
  *   [체크리스트]          A=key  B=checked  C=savedDate
  *   [요거트기록]          A=filled  B=remove
  *   [에이전트기록]        A=agentIdx  B=role  C=content  D=timestamp
@@ -10,15 +13,21 @@
  * 배포 설정: 실행 계정 = 나, 액세스 권한 = 모든 사용자
  */
 
-const SHEET_NAME      = '재고수량및유통기한';
+const SHEET_MUING     = '무잉 데이터';
+const SHEET_EXPIRY    = '재고수량및유통기한';
 const SHEET_CHECKLIST = '체크리스트';
 const SHEET_YOGURT    = '요거트기록';
 const SHEET_AGENT     = '에이전트기록';
 
-const COL_NAME   = 2;  // B열: 상품이름
-const COL_QTY    = 4;  // D열: 재고수량
-const COL_DATE   = 8;  // H열: 유통기한
-const HEADER_ROW = 1;
+// 무잉 데이터 탭
+const MUING_HEADER_ROWS = 4;   // 1~4행 헤더, 5행부터 데이터
+const COL_MUING_NAME    = 3;   // C열: 상품이름
+const COL_MUING_BARCODE = 4;   // D열: 바코드
+const COL_MUING_QTY     = 6;   // F열: 재고수량
+
+// 재고수량및유통기한 탭
+const COL_EXP_BARCODE = 3;     // C열: 바코드 (조인 키)
+const COL_EXP_DATE    = 8;     // H열: 유통기한
 
 // ── GET: 읽기 + 쓰기 모두 처리 ───────────────────────────────
 // 브라우저 fetch의 POST는 Apps Script 리다이렉트에서 GET으로 변환되므로
@@ -64,50 +73,77 @@ function doPost(e) {
   }
 }
 
-// ── 상품 목록 ─────────────────────────────────────────────────
+// ── 상품 목록 (무잉 데이터 + 재고수량및유통기한 조인) ──────────
 function listItems() {
-  const sheet   = getSheet(SHEET_NAME);
+  // 1. 재고수량및유통기한에서 바코드→유통기한 맵 생성
+  const dateMap = buildDateMap();
+
+  // 2. 무잉 데이터에서 상품 읽기
+  const sheet   = getSheet(SHEET_MUING);
   const lastRow = sheet.getLastRow();
-  if (lastRow <= HEADER_ROW) return { items: [] };
+  const startRow = MUING_HEADER_ROWS + 1;  // 5행부터
+  if (lastRow < startRow) return { items: [] };
 
-  const numRows  = lastRow - HEADER_ROW;
-  const startRow = HEADER_ROW + 1;
-
-  const nameData = sheet.getRange(startRow, COL_NAME, numRows, 1).getValues();
-  const qtyData  = sheet.getRange(startRow, COL_QTY,  numRows, 1).getValues();
-  const dateData = sheet.getRange(startRow, COL_DATE, numRows, 1).getValues();
+  const numRows  = lastRow - MUING_HEADER_ROWS;
+  const nameData = sheet.getRange(startRow, COL_MUING_NAME,    numRows, 1).getValues();
+  const bcData   = sheet.getRange(startRow, COL_MUING_BARCODE, numRows, 1).getValues();
+  const qtyData  = sheet.getRange(startRow, COL_MUING_QTY,     numRows, 1).getValues();
 
   const items = nameData.map((nameRow, i) => {
     const name = String(nameRow[0] || '').trim();
     if (!name) return null;
 
-    const qtyRaw = qtyData[i][0];
-    const qty    = (qtyRaw !== '' && qtyRaw !== null && qtyRaw !== undefined)
+    const barcode = String(bcData[i][0] || '').trim();
+    const qtyRaw  = qtyData[i][0];
+    const qty     = (qtyRaw !== '' && qtyRaw !== null && qtyRaw !== undefined)
       ? Number(qtyRaw) : null;
 
-    const dateRaw = dateData[i][0];
-    let date = '2099-12-31';
-    if (dateRaw) {
-      if (dateRaw instanceof Date) {
-        const y = dateRaw.getFullYear();
-        const m = String(dateRaw.getMonth() + 1).padStart(2, '0');
-        const d = String(dateRaw.getDate()).padStart(2, '0');
-        date = y + '-' + m + '-' + d;
-      } else {
-        date = String(dateRaw).trim() || '2099-12-31';
-      }
-    }
+    // 바코드로 유통기한 조회
+    const date = (barcode && dateMap[barcode]) ? dateMap[barcode] : '2099-12-31';
 
     return {
-      id:   'sheet_' + (startRow + i),
-      name: name,
-      qty:  isNaN(qty) ? null : qty,
-      date: date,
-      row:  startRow + i
+      id:      'sheet_' + (startRow + i),
+      name:    name,
+      barcode: barcode,
+      qty:     isNaN(qty) ? null : qty,
+      date:    date,
+      row:     startRow + i
     };
   }).filter(Boolean);
 
   return { items };
+}
+
+// 재고수량및유통기한 탭에서 바코드→유통기한 맵 반환
+function buildDateMap() {
+  const map = {};
+  try {
+    const sheet   = getSheet(SHEET_EXPIRY);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return map;
+
+    const numRows  = lastRow - 1;
+    const bcData   = sheet.getRange(2, COL_EXP_BARCODE, numRows, 1).getValues();
+    const dateData = sheet.getRange(2, COL_EXP_DATE,    numRows, 1).getValues();
+
+    bcData.forEach((row, i) => {
+      const bc = String(row[0] || '').trim();
+      if (!bc) return;
+      const raw = dateData[i][0];
+      if (!raw) return;
+      let dateStr;
+      if (raw instanceof Date) {
+        const y = raw.getFullYear();
+        const m = String(raw.getMonth() + 1).padStart(2, '0');
+        const d = String(raw.getDate()).padStart(2, '0');
+        dateStr = y + '-' + m + '-' + d;
+      } else {
+        dateStr = String(raw).trim();
+      }
+      if (dateStr) map[bc] = dateStr;
+    });
+  } catch(e) {}
+  return map;
 }
 
 function updateQty(params) {
@@ -117,7 +153,7 @@ function updateQty(params) {
   if (isNaN(qty)) throw new Error('qty 파라미터가 숫자가 아님');
   const rowNum = parseInt(id.replace('sheet_', ''), 10);
   if (!rowNum)    throw new Error('row 번호를 파싱할 수 없음: ' + id);
-  getSheet(SHEET_NAME).getRange(rowNum, COL_QTY).setValue(qty);
+  getSheet(SHEET_MUING).getRange(rowNum, COL_MUING_QTY).setValue(qty);
   return { ok: true, id, qty };
 }
 
