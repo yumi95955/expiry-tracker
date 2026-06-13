@@ -1210,13 +1210,18 @@ async function sendChat() {
       })
     });
     const data  = await res.json();
-    const reply = data.content?.find(b => b.type === 'text')?.text || '응답을 받지 못했어요.';
+    if (!res.ok) {
+      const errMsg = data?.error?.message || `API 오류 (${res.status})`;
+      throw new Error(errMsg);
+    }
+    const reply = data.content?.find(b => b.type === 'text')?.text;
+    if (!reply) throw new Error('응답 형식이 올바르지 않습니다: ' + JSON.stringify(data));
     area.removeChild(loading);
     history.push({ role: 'bot', content: reply.replace(/\n/g, '<br>') });
     renderChat();
   } catch (e) {
     area.removeChild(loading);
-    history.push({ role: 'bot', content: '오류가 발생했어요. 잠시 후 다시 시도해주세요.' });
+    history.push({ role: 'bot', content: '오류: ' + e.message });
     renderChat();
   }
 }
