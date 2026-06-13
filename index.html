@@ -736,10 +736,12 @@ async function loadChecklistFromSheet() {
   if (!getUrl()) return;
   try {
     const cl = await apiGet({ action: 'checklist_load' });
-    if (cl.state) {
-      localStorage.setItem(CHECK_KEY, JSON.stringify(cl.state));
-      if (cl.savedDate) localStorage.setItem(CHECK_DATE_KEY, cl.savedDate);
-    }
+    if (!cl.state) return;
+    localStorage.setItem(CHECK_KEY, JSON.stringify(cl.state));
+    // CHECK_DATE_KEY를 항상 오늘로 고정:
+    // 시트 state는 현재 상태를 반영하므로 savedDate 포맷 불일치로
+    // loadCheckState()가 daily 항목을 즉시 초기화하는 것을 막는다.
+    localStorage.setItem(CHECK_DATE_KEY, todayDateStr());
   } catch(e) {}
 }
 

@@ -117,7 +117,18 @@ function loadChecklist() {
     const key = String(row[0] || '').trim();
     if (!key) return;
     state[key] = row[1] === true || row[1] === 'TRUE';
-    if (!savedDate && row[2]) savedDate = String(row[2]);
+    if (!savedDate && row[2]) {
+      // Sheets가 날짜 문자열을 Date 객체로 자동변환하므로 YYYY-MM-DD로 정규화
+      const raw = row[2];
+      if (raw instanceof Date) {
+        const y = raw.getFullYear();
+        const m = String(raw.getMonth() + 1).padStart(2, '0');
+        const d = String(raw.getDate()).padStart(2, '0');
+        savedDate = y + '-' + m + '-' + d;
+      } else {
+        savedDate = String(raw);
+      }
+    }
   });
   return { state, savedDate };
 }
