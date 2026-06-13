@@ -662,12 +662,13 @@ async function apiGet(params) {
 }
 
 async function apiPost(action, data) {
+  // Apps Script 브라우저 POST는 리다이렉트 시 GET으로 변환되어 doPost가 호출되지 않음.
+  // 쓰기 데이터를 ?data=<JSON> 파라미터로 GET 전송해서 doGet에서 처리한다.
   const url = getUrl();
   if (!url) throw new Error('URL 없음');
-  const res = await fetch(url, {
-    method: 'POST',
-    body: JSON.stringify({ action, ...data })
-  });
+  const payload = JSON.stringify({ action, ...data });
+  const qs  = new URLSearchParams({ data: payload }).toString();
+  const res = await fetch(`${url}?${qs}`);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const json = await res.json();
   if (json.error) throw new Error(json.error);

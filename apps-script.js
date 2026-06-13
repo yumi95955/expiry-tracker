@@ -19,10 +19,24 @@ const COL_NAME   = 3;  // C열: 상품이름
 const COL_QTY    = 6;  // F열: 재고수량
 const HEADER_ROW = 1;
 
-// ── GET: 읽기 액션 ────────────────────────────────────────────
+// ── GET: 읽기 + 쓰기 모두 처리 ───────────────────────────────
+// 브라우저 fetch의 POST는 Apps Script 리다이렉트에서 GET으로 변환되므로
+// 쓰기 데이터도 ?data=<JSON> 파라미터로 GET 전송한다.
 function doGet(e) {
-  const action = e.parameter.action || 'list';
   try {
+    // 쓰기 요청: data 파라미터에 JSON 인코딩
+    if (e.parameter.data) {
+      const params = JSON.parse(e.parameter.data);
+      const action = params.action;
+      if (action === 'checklist_save') return respond(saveChecklist(params));
+      if (action === 'yogurt_save')    return respond(saveYogurt(params));
+      if (action === 'agent_append')   return respond(appendAgent(params));
+      if (action === 'agent_clear')    return respond(clearAgent(params));
+      return respond({ error: '알 수 없는 쓰기 action: ' + action });
+    }
+
+    // 읽기 요청
+    const action = e.parameter.action || 'list';
     if (action === 'list')           return respond(listItems());
     if (action === 'qty')            return respond(updateQty(e.parameter));
     if (action === 'checklist_load') return respond(loadChecklist());
@@ -34,7 +48,7 @@ function doGet(e) {
   }
 }
 
-// ── POST: 쓰기 액션 ───────────────────────────────────────────
+// doPost는 스크립트 간 직접 호출용으로 유지
 function doPost(e) {
   try {
     const params = JSON.parse(e.postData.contents);
