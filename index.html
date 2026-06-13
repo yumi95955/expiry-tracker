@@ -136,24 +136,22 @@
     .sync-msg.err { color: #e53935; }
     .sync-msg.ok  { color: #2e7d32; }
 
-    .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-    .form-row input {
-      flex: 1 1 140px; padding: 10px 14px;
-      border: 1.5px solid #dde1ea; border-radius: 10px;
-      font-size: 0.95rem; outline: none;
-      background: #fafbff; color: #1a1a2e;
-      transition: border-color .2s;
+    .search-row {
+      display: flex; align-items: center; gap: 8px;
     }
-    .form-row input:focus { border-color: #6c63ff; }
-    .form-row .btn-add {
-      padding: 10px 18px; background: #6c63ff; color: #fff;
-      border: none; border-radius: 10px; font-size: 0.95rem;
-      font-weight: 600; cursor: pointer; white-space: nowrap;
-      transition: background .2s, transform .1s;
+    .search-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .search-row input {
+      flex: 1; padding: 10px 4px;
+      border: none; outline: none;
+      font-size: 1rem; background: transparent; color: #1a1a2e;
     }
-    .form-row .btn-add:hover { background: #5a52d5; }
-    .form-row .btn-add:active { transform: scale(.97); }
-    .form-row .btn-add:disabled { background: #bbb; cursor: not-allowed; }
+    .search-row input::placeholder { color: #bbb; }
+    .search-clear {
+      background: none; border: none; cursor: pointer;
+      color: #bbb; font-size: 1rem; padding: 4px 6px;
+      border-radius: 6px; transition: color .2s, background .2s; flex-shrink: 0;
+    }
+    .search-clear:hover { color: #e53935; background: #ffebee; }
 
     .stats {
       display: flex; gap: 8px; justify-content: center;
@@ -504,18 +502,19 @@
     </div>
   </div>
 
-  <div class="card">
-    <div class="form-row">
-      <input id="nameInput" type="text" placeholder="제품명" maxlength="40" />
-      <input id="dateInput" type="date" />
-      <button class="btn-add" id="addBtn" onclick="addItem()">추가</button>
+  <div class="card" style="padding:12px 16px">
+    <div class="search-row">
+      <span class="search-icon">🔍</span>
+      <input id="searchInput" type="text" placeholder="제품명 검색…" autocomplete="off"
+        oninput="setSearch(this.value)" />
+      <button class="search-clear" id="searchClear" onclick="clearSearch()" style="display:none">✕</button>
     </div>
   </div>
 
   <div class="stats" id="stats"></div>
   <div class="exp-list" id="list"></div>
   <div class="exp-empty" id="empty" style="display:none">
-    <span>📦</span>제품을 추가해 보세요.
+    <span>🔍</span>검색 결과가 없어요.
   </div>
 </div>
 
@@ -648,6 +647,20 @@ function sortItems(items) {
 
 let activeFilter = null;
 function setFilter(type) { activeFilter = (activeFilter === type) ? null : type; renderExpiry(); }
+
+let searchQuery = '';
+function setSearch(val) {
+  searchQuery = val.trim().toLowerCase();
+  document.getElementById('searchClear').style.display = searchQuery ? '' : 'none';
+  renderExpiry();
+}
+function clearSearch() {
+  searchQuery = '';
+  document.getElementById('searchInput').value = '';
+  document.getElementById('searchClear').style.display = 'none';
+  document.getElementById('searchInput').focus();
+  renderExpiry();
+}
 
 async function apiGet(params) {
   const url = getUrl();
@@ -870,16 +883,21 @@ function renderExpiry() {
   const orderCount = all.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT).length;
   const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
   all.forEach(item => counts[classify(daysLeft(item.date))]++);
-  const items = activeFilter
-    ? all.filter(item => {
-        const cls = classify(daysLeft(item.date));
-        if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
-        if (activeFilter === 'warning') return cls === 'warning';
-        if (activeFilter === 'ok')      return cls === 'ok';
-        if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
-        return true;
-      })
+
+  // 검색어 + 카테고리 필터 순서로 적용
+  let items = searchQuery
+    ? all.filter(item => item.name.toLowerCase().includes(searchQuery))
     : all;
+  if (activeFilter) {
+    items = items.filter(item => {
+      const cls = classify(daysLeft(item.date));
+      if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
+      if (activeFilter === 'warning') return cls === 'warning';
+      if (activeFilter === 'ok')      return cls === 'ok';
+      if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
+      return true;
+    });
+  }
   items.forEach(item => {
     const days = daysLeft(item.date);
     const cls  = classify(days);
@@ -933,11 +951,8 @@ function renderExpiry() {
     }).join('');
 }
 
-document.getElementById('nameInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') document.getElementById('dateInput').focus();
-});
-document.getElementById('dateInput').addEventListener('keydown', e => {
-  if (e.key === 'Enter') addItem();
+document.getElementById('searchInput').addEventListener('keydown', e => {
+  if (e.key === 'Escape') clearSearch();
 });
 
 /* ════════════════════════════════════════════
