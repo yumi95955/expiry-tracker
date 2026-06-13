@@ -33,26 +33,30 @@ function listItems() {
 
   if (lastRow <= HEADER_ROW) return { items: [] };
 
-  const range = sheet.getRange(HEADER_ROW + 1, 1, lastRow - HEADER_ROW, COL_QTY);
-  const data  = range.getValues();
+  const numRows = lastRow - HEADER_ROW;
+  const startRow = HEADER_ROW + 1;
 
-  const items = data
-    .map((row, i) => {
-      const name = String(row[COL_NAME - 1] || '').trim();
+  // 열을 직접 지정해서 읽기 — 인덱스 연산 없이 COL_NAME(3=C), COL_QTY(6=F)로 바로 접근
+  const nameData = sheet.getRange(startRow, COL_NAME, numRows, 1).getValues();
+  const qtyData  = sheet.getRange(startRow, COL_QTY,  numRows, 1).getValues();
+
+  const items = nameData
+    .map((nameRow, i) => {
+      const name = String(nameRow[0] || '').trim();
       if (!name) return null;
 
-      const qtyRaw = row[COL_QTY - 1];
+      const qtyRaw = qtyData[i][0];
       const qty    = (qtyRaw !== '' && qtyRaw !== null && qtyRaw !== undefined)
         ? Number(qtyRaw)
         : null;
 
       return {
-        id:   'sheet_' + (HEADER_ROW + 1 + i),
+        id:   'sheet_' + (startRow + i),
         name: name,
         qty:  isNaN(qty) ? null : qty,
         // 유통기한 열 없음 — 앱 표시용 더미 날짜 (먼 미래)
         date: '2099-12-31',
-        row:  HEADER_ROW + 1 + i
+        row:  startRow + i
       };
     })
     .filter(Boolean);
