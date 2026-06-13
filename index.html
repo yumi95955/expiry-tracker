@@ -649,15 +649,65 @@ function sortItems(items) {
   });
 }
 
-let activeFilter = null;
-let orderZeroOnly = false;
+const DISCONTINUED = new Set([
+  '비닐봉투','발보아 코리안소스 프로틴 콘칩 김치라면','발보아 저당 크리스피 그래놀라바 카라멜',
+  '발보아 저당 크리스피 그래놀라바 말차','갓닭 떡볶이맛','제로볶이','그릭씨 요거트 350g',
+  '가뿐한끼 촉촉탱글 닭가슴살 핫도그','동원 저스트 노슈가 스위트콘 340g',
+  '동원 저스트 노슈가 황도 슬라이스 400g','아몬드데이 언스위트 190ml','탱글 머쉬룸크림 파스타',
+  '빙그레 더단백 마일드바 아몬드쿠키','더위사냥 제로','아이스쿨 제로 펀치','월드콘 바닐라 저당',
+  '미트리 실온보관 닭가슴살 오리지널','바로뺀닭-매콤바베큐','바로뺀닭-간장찜닭',
+  '미트리 닭가슴살 한끼만두 갈비','요정스프 미트볼','몽크슈 프로틴 스낵 불닭맛 20g',
+  '몽크슈 프로틴 스낵 허니버터맛 20g','프롬잇 프로틴킥 매콤한맛 40g','프롬잇 프로틴킥 더블초코맛 40g',
+  '비비드키친 저칼로리 마라소스','비비드키친 저당 발사믹 샐러드드레싱',
+  '비비드키친 저칼로리 닭가슴살 브리또 비프마라맛 125g','비비드키친 저칼로리 비빔장 280g',
+  '몽크슈 나한과 분말 200g','미트리 닭가슴살 소떡소떡',
+  '인테이크 슈가로로 무설탕 비타민 구미젤리 복숭아맛 45g',
+  '헤이씨리 프로틴 시리얼 오리지널','헤이씨리 프로틴 시리얼 바나나맛','헤이씨리 프로틴 시리얼 초코맛',
+  '랠리 닭가슴살 곤약볶음밥 김치맛','랠리 닭가슴살 곤약볶음밥 닭갈비 맛',
+  '랠리 곤약김밥 불고기','랠리 곤약김밥 김치제육',
+  '랩노쉬 단백쿠키 더블초코 40G','랩노쉬 단백쿠키 아몬드앤그린티 40G','랩노쉬 단백쿠키 피넛버터 40G',
+  '랩노쉬 프로틴 드링크 마일드 카카오 350ml','랩노쉬 프로틴 드링크 바나나 350ml',
+  '랩노쉬 슬림쉐이크 딸기바나나','랩노쉬 슬림쉐이크 고구마',
+  '바르닭 한입닭가슴살 마라','바르닭 한입 닭가슴살 갈릭',
+  '블랙컨슈머 렌틸콩밥/오징어볶음','블랙컨슈머 소보로밥/떡갈비',
+  '블랙컨슈머 곤약귀리밥/석쇠고추장불고기','블랙컨슈머 김치볶음밥/석쇠불고기',
+  '블랙컨슈머 계란볶음밥/사천짜장','블랙컨슈머 오곡밥 청양간장고기조림',
+  '짐피자 고단백 프로틴 도우 피자 불고기','짐피자 고단백 프로틴 도우 피자 콰트로치즈',
+  '짐피자 고단백 프로틴 도우 피자 토마토치즈','짐피자 고단백 프로틴 도우 피자 로스트치킨',
+  '닥터리브 곤약젤리 복숭아','바르닭 한입 닭가슴살 오리지널','바르닭 한입닭가슴살 닭갈비',
+  '바르닭 한입닭가슴살 매콤치즈',
+  '[삼각 주먹밥] 삼겹김치 100g','[삼각 주먹밥] 감자탕 100g','[삼각 주먹밥] 닭갈비 100g','[삼각 주먹밥] 참치마요 100g',
+  '라라스윗 파인트 딸기','라라스윗 파인트 말차','라라스윗 저당 팥모나카','라라스윗 저당 꿀고구마 모나카',
+  '라라스윗 파인트 꿀고구마','달롤 저당 글루텐프리 순수달미롤 45G','달롤 저당 글루텐프리 초코달미롤 51G',
+  '갓돼 무설탕 직화 수비드 돼지안심 직화갈비맛','갓돼 무설탕 직화 수비드 돼지안심 직화제육맛',
+  '마이노멀 저당 고추장 230g','마이노멀 저당 드레싱 시저','마이노멀 저당 저칼로리 매실청 550g',
+  '씬디 제로칼로리 무설탕 캔디 스트로베리','바로끼니 숯불갈릭 더블치킨피자','바로끼니 치즈불닭 더블치킨피자',
+  '안단 저칼로리 백도복숭아잼 380g','팽이팽이 제로','무화당 저당 알룰로스 양념장 쌈장 250g',
+  '벨라 저당 그래놀라 카카오 200G','벨라 저당 그래놀라 넛츠 200G','벨라 저당 그래놀라 밀크티 200G',
+  '벨라 저당 그래놀라 베리베리 200G','벨라 저당 그래놀라 시나몬 200G',
+  '널담 고단백 저당 배꼽 베이글 플레인','널담 고단백 배꼽 베이글 흑임자맛','널담 고단백 배꼽 베이글 호두 & 크랜베리맛',
+  '널담 뉴트리션 통밀식빵 플레인','단슐랭 당연구소 카사바 스틱','당연구소 파로 현미 뻥튀기',
+  '프로넛 무설탕 자일리톨 캔디 오리지널맛','발효곤약 메밀면',
+  '밸런스 한끼 저당김밥 숯불닭갈비맛','밸런스 한끼 저당김밥 계란치즈맛',
+  '밸런스 한끼 저당김밥 계란야채맛','밸런스 한끼 저당김밥 계란묵은지참치맛',
+  '스마트키친 저당 굴소스 300g','스마트키친 저당 마요네즈 270g','스마트키친 고추마요 270g',
+  '레디블룸 프로틴 그래놀라 카페모카 30G','레디블룸 프로틴 그래놀라 피스타치오 초코 30G',
+  '고단백 스낵 김부각 오리지널맛 50g','로엘 팅글 닥터구미 젤리 제로슈가 42g',
+  '단백질 설기떡 단호박','단백질 설기떡 제주 쑥','단백질 설기떡 자색고구마맛',
+  '단백질 영양찰떡 단호박','단백질 영양찰떡 자색고구마','단백질 영양찰떡 제주쑥',
+  'DJ 비트','DJ&A 베지 크리스프 오리지널 90g',
+]);
+function isDiscontinued(name) { return DISCONTINUED.has(name.trim()); }
+
+let activeFilter  = null;
+let orderSubTab   = '1to5'; // '1to5' | 'zero' | 'disc'
 function setFilter(type) {
   activeFilter = (activeFilter === type) ? null : type;
-  orderZeroOnly = false;
+  orderSubTab  = '1to5';
   renderExpiry();
 }
-function setOrderZero(zeroOnly) {
-  orderZeroOnly = zeroOnly;
+function setOrderSub(tab) {
+  orderSubTab = tab;
   renderExpiry();
 }
 
@@ -908,8 +958,10 @@ function renderExpiry() {
       if (activeFilter === 'warning') return cls === 'warning';
       if (activeFilter === 'ok')      return cls === 'ok';
       if (activeFilter === 'order') {
+        if (orderSubTab === 'disc') return isDiscontinued(item.name);
         if (item.qty === null || item.qty === undefined) return false;
-        return orderZeroOnly ? item.qty === 0 : item.qty >= 1 && item.qty <= ORDER_LIMIT;
+        if (orderSubTab === 'zero') return item.qty === 0 && !isDiscontinued(item.name);
+        return item.qty >= 1 && item.qty <= ORDER_LIMIT; // '1to5'
       }
       return true;
     });
@@ -968,18 +1020,24 @@ function renderExpiry() {
       return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
     }).join('');
 
-  // 발주필요 탭 활성화 시 0개 서브필터 칩 표시
   const subEl = document.getElementById('order-subfilter');
   if (activeFilter === 'order') {
-    subEl.innerHTML = `
-      <div style="display:flex;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
-        <button onclick="setOrderZero(false)" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${!orderZeroOnly ? '#6c63ff' : '#dde1ea'};background:${!orderZeroOnly ? '#ede9ff' : '#fff'};color:${!orderZeroOnly ? '#6c63ff' : '#888'};font-size:0.82rem;font-weight:600;cursor:pointer">
-          🛒 1~5개 (${orderCount - zeroCount > 0 ? orderCount - zeroCount : all.filter(i=>i.qty>=1&&i.qty<=ORDER_LIMIT).length}개 상품)
-        </button>
-        <button onclick="setOrderZero(true)" style="padding:5px 14px;border-radius:20px;border:1.5px solid ${orderZeroOnly ? '#e53935' : '#dde1ea'};background:${orderZeroOnly ? '#ffebee' : '#fff'};color:${orderZeroOnly ? '#c62828' : '#888'};font-size:0.82rem;font-weight:600;cursor:pointer">
-          ⛔ 0개 단종예정 (${zeroCount}개 상품)
-        </button>
-      </div>`;
+    const cnt1to5 = all.filter(i => i.qty >= 1 && i.qty <= ORDER_LIMIT).length;
+    const cntZero = all.filter(i => i.qty === 0 && !isDiscontinued(i.name)).length;
+    const cntDisc = all.filter(i => isDiscontinued(i.name)).length;
+    const chip = (tab, icon, label, cnt, activeCls, activeTxt, activeBorder) => {
+      const on = orderSubTab === tab;
+      return `<button onclick="setOrderSub('${tab}')"
+        style="padding:5px 14px;border-radius:20px;font-size:0.82rem;font-weight:600;cursor:pointer;
+               border:1.5px solid ${on ? activeBorder : '#dde1ea'};
+               background:${on ? activeCls : '#fff'};
+               color:${on ? activeTxt : '#888'}">${icon} ${label} (${cnt})</button>`;
+    };
+    subEl.innerHTML = `<div style="display:flex;gap:8px;padding:4px 0 10px;flex-wrap:wrap">
+      ${chip('1to5','🛒','발주필요 1~5개', cnt1to5, '#ede9ff','#6c63ff','#6c63ff')}
+      ${chip('zero','⚠️','재고 0개',       cntZero, '#fff8e6','#e65100','#f57c00')}
+      ${chip('disc','🚫','단종예정 고정',   cntDisc, '#ffebee','#c62828','#e53935')}
+    </div>`;
   } else {
     subEl.innerHTML = '';
   }
