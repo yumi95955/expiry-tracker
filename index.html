@@ -635,13 +635,16 @@ function badgeText(days) {
   if (days === 0) return '오늘\n만료';
   return `${days}일\n남음`;
 }
-const PRIORITY = { expired: 0, critical: 1, warning: 2, ok: 3 };
 function sortItems(items) {
   return [...items].sort((a, b) => {
-    const pa = PRIORITY[classify(daysLeft(a.date))];
-    const pb = PRIORITY[classify(daysLeft(b.date))];
-    if (pa !== pb) return pa - pb;
-    return new Date(a.date) - new Date(b.date);
+    const da = daysLeft(a.date);
+    const db = daysLeft(b.date);
+    // 유통기한 없는 항목(NaN)은 맨 아래
+    if (isNaN(da) && isNaN(db)) return 0;
+    if (isNaN(da)) return 1;
+    if (isNaN(db)) return -1;
+    // 유통기한 있는 항목은 남은 일수 오름차순 (만료→임박→여유)
+    return da - db;
   });
 }
 
@@ -897,6 +900,10 @@ function renderExpiry() {
       if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
       return true;
     });
+    // 발주필요 탭: 재고 적은 순(0개부터) 정렬
+    if (activeFilter === 'order') {
+      items = [...items].sort((a, b) => (a.qty ?? Infinity) - (b.qty ?? Infinity));
+    }
   }
   items.forEach(item => {
     const days = daysLeft(item.date);
