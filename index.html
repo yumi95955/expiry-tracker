@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>유통기한 관리</title>
+  <title>제로초이스 매장관리</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -11,78 +11,75 @@
       font-family: 'Segoe UI', system-ui, sans-serif;
       background: #f0f2f5;
       min-height: 100vh;
-      padding: 24px 16px 40px;
       color: #1a1a2e;
+      padding-bottom: 80px;
     }
 
-    h1 {
-      text-align: center;
-      font-size: 1.6rem;
+    /* ── 상단 헤더 ── */
+    .app-header {
+      background: #fff;
+      padding: 16px 20px 0;
+      box-shadow: 0 1px 0 #eee;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      max-width: 100%;
+    }
+    .app-title {
+      font-size: 1.1rem;
       font-weight: 700;
-      margin-bottom: 20px;
       color: #1a1a2e;
-      letter-spacing: -0.5px;
+      margin-bottom: 12px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
     }
+    .app-title span { font-size: 1.3rem; }
 
+    /* ── 탭 ── */
+    .tabs {
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      scrollbar-width: none;
+    }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      flex: 1;
+      min-width: 70px;
+      padding: 10px 6px;
+      border: none;
+      background: transparent;
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: #aaa;
+      cursor: pointer;
+      border-bottom: 2.5px solid transparent;
+      transition: all .2s;
+      white-space: nowrap;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+    .tab-btn .tab-icon { font-size: 1.1rem; }
+    .tab-btn.active { color: #6c63ff; border-bottom-color: #6c63ff; }
+    .tab-btn:hover:not(.active) { color: #555; }
+
+    /* ── 탭 콘텐츠 ── */
+    .tab-content { display: none; padding: 16px; max-width: 520px; margin: 0 auto; }
+    .tab-content.active { display: block; }
+
+    /* ── 공통 카드 ── */
     .card {
       background: #fff;
       border-radius: 16px;
       padding: 18px 20px;
       box-shadow: 0 2px 12px rgba(0,0,0,.08);
-      max-width: 520px;
-      margin: 0 auto 14px;
+      margin-bottom: 14px;
     }
 
-    /* ── sheet connect card ── */
-    .connect-header {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      cursor: pointer;
-      user-select: none;
-    }
-
-    .connect-header-left {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      font-size: 0.95rem;
-    }
-
-    .dot {
-      width: 9px; height: 9px;
-      border-radius: 50%;
-      background: #ccc;
-      flex-shrink: 0;
-    }
-    .dot.connected { background: #43a047; }
-    .dot.syncing   { background: #fb8c00; animation: pulse .8s infinite alternate; }
-    .dot.error     { background: #e53935; }
-
-    @keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
-
-    .chevron { font-size: 0.75rem; color: #aaa; transition: transform .2s; }
-    .chevron.open { transform: rotate(180deg); }
-
-    .connect-body { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
-    .connect-body.hidden { display: none; }
-
-    .connect-body input[type="text"] {
-      width: 100%;
-      padding: 9px 12px;
-      border: 1.5px solid #dde1ea;
-      border-radius: 10px;
-      font-size: 0.88rem;
-      outline: none;
-      background: #fafbff;
-      color: #1a1a2e;
-      transition: border-color .2s;
-    }
-    .connect-body input[type="text"]:focus { border-color: #6c63ff; }
-
-    .connect-btns { display: flex; gap: 8px; flex-wrap: wrap; }
-
+    /* ── 버튼 ── */
     .btn {
       padding: 8px 16px;
       border: none;
@@ -102,50 +99,65 @@
     .btn-green { background: #e8f5e9; color: #1b5e20; }
     .btn-green:hover { background: #c8e6c9; }
 
-    .sync-msg {
-      font-size: 0.8rem;
-      color: #888;
-      min-height: 18px;
+    /* ════════════════════════════════
+       탭1: 유통기한
+    ════════════════════════════════ */
+    .connect-header {
+      display: flex; align-items: center;
+      justify-content: space-between;
+      cursor: pointer; user-select: none;
     }
+    .connect-header-left {
+      display: flex; align-items: center;
+      gap: 10px; font-weight: 600; font-size: 0.95rem;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: #ccc; flex-shrink: 0;
+    }
+    .dot.connected { background: #43a047; }
+    .dot.syncing   { background: #fb8c00; animation: pulse .8s infinite alternate; }
+    .dot.error     { background: #e53935; }
+    @keyframes pulse { from { opacity: 1; } to { opacity: .3; } }
+    .chevron { font-size: 0.75rem; color: #aaa; transition: transform .2s; }
+    .chevron.open { transform: rotate(180deg); }
+    .connect-body { margin-top: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .connect-body.hidden { display: none; }
+    .connect-body input[type="text"] {
+      width: 100%; padding: 9px 12px;
+      border: 1.5px solid #dde1ea; border-radius: 10px;
+      font-size: 0.88rem; outline: none;
+      background: #fafbff; color: #1a1a2e;
+      transition: border-color .2s;
+    }
+    .connect-body input[type="text"]:focus { border-color: #6c63ff; }
+    .connect-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+    .sync-msg { font-size: 0.8rem; color: #888; min-height: 18px; }
     .sync-msg.err { color: #e53935; }
     .sync-msg.ok  { color: #2e7d32; }
 
-    /* ── add form ── */
     .form-row { display: flex; gap: 10px; flex-wrap: wrap; }
-
     .form-row input {
-      flex: 1 1 140px;
-      padding: 10px 14px;
-      border: 1.5px solid #dde1ea;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      outline: none;
-      background: #fafbff;
-      color: #1a1a2e;
+      flex: 1 1 140px; padding: 10px 14px;
+      border: 1.5px solid #dde1ea; border-radius: 10px;
+      font-size: 0.95rem; outline: none;
+      background: #fafbff; color: #1a1a2e;
       transition: border-color .2s;
     }
     .form-row input:focus { border-color: #6c63ff; }
-
     .form-row .btn-add {
-      padding: 10px 18px;
-      background: #6c63ff;
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-size: 0.95rem;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
+      padding: 10px 18px; background: #6c63ff; color: #fff;
+      border: none; border-radius: 10px; font-size: 0.95rem;
+      font-weight: 600; cursor: pointer; white-space: nowrap;
       transition: background .2s, transform .1s;
     }
     .form-row .btn-add:hover { background: #5a52d5; }
     .form-row .btn-add:active { transform: scale(.97); }
     .form-row .btn-add:disabled { background: #bbb; cursor: not-allowed; }
 
-    /* ── stats ── */
     .stats {
       display: flex; gap: 8px; justify-content: center;
-      flex-wrap: wrap; margin-bottom: 4px;
+      flex-wrap: wrap; margin-bottom: 8px;
     }
     .stat-chip {
       padding: 4px 14px; border-radius: 20px;
@@ -163,30 +175,22 @@
     .chip-ok     { background: #e8f5e9; color: #2e7d32; }
     .chip-order  { background: #fff3e0; color: #e65100; }
 
-    /* ── list ── */
-    .list { max-width: 520px; margin: 0 auto; display: flex; flex-direction: column; gap: 10px; }
-
+    .exp-list { display: flex; flex-direction: column; gap: 10px; }
     .item {
-      background: #fff;
-      border-radius: 14px;
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      gap: 14px;
+      background: #fff; border-radius: 14px;
+      padding: 14px 16px; display: flex;
+      align-items: center; gap: 14px;
       box-shadow: 0 2px 8px rgba(0,0,0,.06);
       border-left: 5px solid transparent;
       transition: transform .15s, box-shadow .15s;
       animation: fadeIn .22s ease;
     }
     .item:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.10); }
-
     @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; } }
-
     .item.expired  { border-left-color: #9e9e9e; opacity: .65; }
     .item.critical { border-left-color: #e53935; }
     .item.warning  { border-left-color: #f57c00; }
     .item.ok       { border-left-color: #43a047; }
-
     .badge {
       min-width: 54px; text-align: center;
       padding: 4px 8px; border-radius: 8px;
@@ -197,30 +201,22 @@
     .item.critical .badge { background: #ffebee; color: #c62828; }
     .item.warning  .badge { background: #fff8e6; color: #e65100; }
     .item.ok       .badge { background: #e8f5e9; color: #1b5e20; }
-
     .info { flex: 1; min-width: 0; }
     .info .name {
       font-weight: 600; font-size: 1rem;
       display: -webkit-box; -webkit-line-clamp: 2;
-      -webkit-box-orient: vertical; overflow: hidden;
-      line-height: 1.35;
+      -webkit-box-orient: vertical; overflow: hidden; line-height: 1.35;
     }
     .info .date { font-size: 0.8rem; color: #888; margin-top: 2px; }
-
     .del-btn {
       background: none; border: none; cursor: pointer;
       color: #bbb; font-size: 1.2rem; line-height: 1;
       padding: 4px 6px; border-radius: 6px;
-      transition: color .2s, background .2s;
-      flex-shrink: 0;
+      transition: color .2s, background .2s; flex-shrink: 0;
     }
     .del-btn:hover { color: #e53935; background: #ffebee; }
     .del-btn:disabled { opacity: .4; cursor: wait; }
-
-    .qty-wrap {
-      display: flex; align-items: center; gap: 5px;
-      margin-top: 8px;
-    }
+    .qty-wrap { display: flex; align-items: center; gap: 5px; margin-top: 8px; }
     .qty-btn {
       width: 26px; height: 26px; border-radius: 50%;
       border: 1.5px solid #dde1ea; background: #fafbff;
@@ -241,16 +237,12 @@
     .qty-input:focus { border-color: #6c63ff; }
     .qty-input.zero { color: #e53935; }
     .qty-label { font-size: 0.75rem; color: #aaa; }
-
-    /* ── 발주 뱃지 ── */
     .order-badge {
       display: inline-block; margin-top: 6px;
       padding: 2px 8px; border-radius: 6px;
       font-size: 0.72rem; font-weight: 700;
       background: #ffebee; color: #c62828;
     }
-
-    /* ── 발주완료 체크 ── */
     .ordered-check {
       display: flex; align-items: center; gap: 5px;
       margin-top: 6px; cursor: pointer; user-select: none;
@@ -259,421 +251,1026 @@
     .ordered-check input { width: 15px; height: 15px; cursor: pointer; accent-color: #6c63ff; }
     .item.ordered { opacity: .45; }
     .item.ordered .name { text-decoration: line-through; }
-
-    /* ── 발주 리스트 모달 ── */
-    .modal-backdrop {
-      display: none; position: fixed; inset: 0;
-      background: rgba(0,0,0,.4); z-index: 100;
-      align-items: center; justify-content: center; padding: 20px;
-    }
-    .modal-backdrop.open { display: flex; }
-    .modal {
-      background: #fff; border-radius: 18px; padding: 22px;
-      width: 100%; max-width: 480px; max-height: 80vh;
-      display: flex; flex-direction: column; gap: 14px;
-      box-shadow: 0 8px 32px rgba(0,0,0,.18);
-    }
-    .modal-title { font-size: 1.1rem; font-weight: 700; }
-    .modal-list {
-      overflow-y: auto; flex: 1;
-      border: 1.5px solid #f0f2f5; border-radius: 10px;
-      padding: 12px; font-size: 0.9rem; line-height: 2;
-      white-space: pre-wrap; color: #1a1a2e;
-    }
-    .modal-btns { display: flex; gap: 8px; }
-
-    /* ── 발주 버튼 ── */
-    .order-btn {
-      max-width: 520px; margin: 0 auto 10px;
-      display: flex; width: 100%;
-      padding: 11px; background: #fff0f0;
-      border: none; border-radius: 12px;
-      color: #c62828; font-weight: 700; font-size: 0.95rem;
-      cursor: pointer; gap: 6px; justify-content: center;
-      align-items: center; transition: background .2s;
-    }
-    .order-btn:hover { background: #ffcdd2; }
-
-    .empty {
+    .exp-empty {
       text-align: center; padding: 40px 0;
       color: #aaa; font-size: 0.95rem;
-      max-width: 520px; margin: 0 auto;
     }
-    .empty span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+    .exp-empty span { font-size: 2.5rem; display: block; margin-bottom: 10px; }
+
+    /* ════════════════════════════════
+       탭2: 체크리스트
+    ════════════════════════════════ */
+    .check-section-label {
+      font-size: 0.75rem; font-weight: 700;
+      color: #aaa; text-transform: uppercase;
+      letter-spacing: .5px; margin: 16px 0 8px;
+    }
+    .check-section-label:first-child { margin-top: 0; }
+    .check-group {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      overflow: hidden; margin-bottom: 10px;
+    }
+    .check-group-header {
+      padding: 12px 16px;
+      background: #fafbff;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 0.9rem; font-weight: 700;
+      color: #1a1a2e;
+      display: flex; justify-content: space-between;
+      align-items: center; cursor: pointer;
+      user-select: none;
+    }
+    .check-group-header:hover { background: #f4f2ff; }
+    .check-progress {
+      font-size: 0.75rem; font-weight: 600;
+      color: #6c63ff; background: #ede9ff;
+      padding: 2px 8px; border-radius: 20px;
+    }
+    .check-item {
+      display: flex; align-items: flex-start;
+      gap: 12px; padding: 11px 16px;
+      border-bottom: 1px solid #f8f8f8;
+      cursor: pointer; transition: background .15s;
+    }
+    .check-item:last-child { border-bottom: none; }
+    .check-item:hover { background: #fafbff; }
+    .check-item.checked .check-label {
+      text-decoration: line-through; color: #bbb;
+    }
+    .check-box {
+      width: 20px; height: 20px;
+      border: 2px solid #dde1ea; border-radius: 5px;
+      flex-shrink: 0; display: flex;
+      align-items: center; justify-content: center;
+      margin-top: 1px; transition: all .15s;
+    }
+    .check-item.checked .check-box {
+      background: #6c63ff; border-color: #6c63ff;
+      color: #fff; font-size: 12px;
+    }
+    .check-label { font-size: 0.9rem; color: #1a1a2e; line-height: 1.4; }
+    .check-reset-btn {
+      width: 100%; padding: 10px;
+      background: #f0f2f5; border: none;
+      border-radius: 10px; font-size: 0.85rem;
+      font-weight: 600; color: #888;
+      cursor: pointer; margin-top: 6px;
+      transition: background .2s;
+    }
+    .check-reset-btn:hover { background: #e4e6eb; color: #555; }
+
+    /* ════════════════════════════════
+       탭3: 에이전트
+    ════════════════════════════════ */
+    .agent-selector {
+      display: flex; gap: 8px;
+      margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .agent-chip {
+      padding: 7px 14px; border-radius: 20px;
+      border: 1.5px solid #dde1ea;
+      background: #fff; font-size: 0.85rem;
+      font-weight: 600; cursor: pointer;
+      color: #888; transition: all .2s;
+    }
+    .agent-chip.selected {
+      background: #6c63ff; color: #fff;
+      border-color: #6c63ff;
+    }
+    .agent-info-card {
+      background: #fafbff; border-radius: 12px;
+      padding: 12px 14px; margin-bottom: 12px;
+      border: 1.5px solid #ede9ff;
+      font-size: 0.85rem; color: #555; line-height: 1.6;
+    }
+    .agent-info-card strong { color: #6c63ff; }
+    .chat-area {
+      background: #f8f8fc; border-radius: 14px;
+      min-height: 200px; max-height: 300px;
+      overflow-y: auto; padding: 14px;
+      margin-bottom: 10px;
+      border: 1px solid #eee;
+    }
+    .chat-msg { margin-bottom: 10px; display: flex; flex-direction: column; }
+    .chat-msg.user { align-items: flex-end; }
+    .chat-msg.bot  { align-items: flex-start; }
+    .chat-bubble {
+      padding: 9px 13px; border-radius: 14px;
+      font-size: 0.88rem; line-height: 1.55;
+      max-width: 88%; white-space: pre-wrap;
+    }
+    .chat-msg.user .chat-bubble {
+      background: #6c63ff; color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .chat-msg.bot .chat-bubble {
+      background: #fff; border: 1px solid #eee;
+      color: #1a1a2e; border-bottom-left-radius: 4px;
+    }
+    .chat-input-row { display: flex; gap: 8px; }
+    .chat-input-row input {
+      flex: 1; padding: 10px 14px;
+      border: 1.5px solid #dde1ea; border-radius: 10px;
+      font-size: 0.9rem; outline: none;
+      background: #fafbff; color: #1a1a2e;
+      transition: border-color .2s;
+    }
+    .chat-input-row input:focus { border-color: #6c63ff; }
+    .chat-send {
+      padding: 10px 16px; background: #6c63ff; color: #fff;
+      border: none; border-radius: 10px; font-size: 0.9rem;
+      cursor: pointer; font-weight: 600; transition: background .2s;
+    }
+    .chat-send:hover { background: #5a52d5; }
+    .quick-ask-btn {
+      width: 100%; padding: 9px; margin-top: 8px;
+      background: #ede9ff; border: none; border-radius: 10px;
+      color: #6c63ff; font-size: 0.85rem; font-weight: 600;
+      cursor: pointer; transition: background .2s;
+    }
+    .quick-ask-btn:hover { background: #ddd8ff; }
+    .typing-dots {
+      display: inline-flex; gap: 4px; align-items: center; padding: 4px 0;
+    }
+    .typing-dots span {
+      width: 7px; height: 7px; background: #bbb; border-radius: 50%;
+      animation: blink 1.2s infinite;
+    }
+    .typing-dots span:nth-child(2) { animation-delay: .2s; }
+    .typing-dots span:nth-child(3) { animation-delay: .4s; }
+    @keyframes blink { 0%,80%,100%{opacity:.2} 40%{opacity:1} }
+
+    /* ════════════════════════════════
+       탭4: 리마인더
+    ════════════════════════════════ */
+    .reminder-card {
+      background: #fff; border-radius: 14px;
+      padding: 14px 16px; margin-bottom: 10px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      border-left: 4px solid #ddd;
+    }
+    .reminder-card.today   { border-left-color: #e53935; }
+    .reminder-card.soon    { border-left-color: #f57c00; }
+    .reminder-card.normal  { border-left-color: #6c63ff; }
+    .reminder-badge {
+      display: inline-block; font-size: 0.72rem;
+      font-weight: 700; padding: 2px 8px;
+      border-radius: 20px; margin-bottom: 6px;
+    }
+    .rb-today  { background: #ffebee; color: #c62828; }
+    .rb-soon   { background: #fff8e6; color: #e65100; }
+    .rb-normal { background: #ede9ff; color: #6c63ff; }
+    .rb-ok     { background: #e8f5e9; color: #1b5e20; }
+    .reminder-title {
+      font-size: 0.95rem; font-weight: 700;
+      color: #1a1a2e; margin-bottom: 3px;
+    }
+    .reminder-detail { font-size: 0.82rem; color: #888; line-height: 1.5; }
+    .yogurt-section { margin-top: 4px; }
+    .yogurt-input-row { display: flex; gap: 8px; margin-top: 10px; }
+    .yogurt-input-row input {
+      flex: 1; padding: 9px 12px;
+      border: 1.5px solid #dde1ea; border-radius: 10px;
+      font-size: 0.88rem; outline: none;
+      background: #fafbff; color: #1a1a2e;
+    }
+    .yogurt-input-row input:focus { border-color: #6c63ff; }
+    .yogurt-input-row button {
+      padding: 9px 16px; background: #6c63ff; color: #fff;
+      border: none; border-radius: 10px; font-size: 0.88rem;
+      font-weight: 600; cursor: pointer;
+    }
+    .yogurt-log-item {
+      display: flex; justify-content: space-between;
+      align-items: center; padding: 8px 0;
+      border-bottom: 1px solid #f0f2f5;
+      font-size: 0.82rem;
+    }
+    .yogurt-log-item:last-child { border-bottom: none; }
+    .yogurt-log-item .ydate { color: #555; }
+    .section-title {
+      font-size: 0.8rem; font-weight: 700;
+      color: #aaa; text-transform: uppercase;
+      letter-spacing: .5px; margin: 18px 0 10px;
+    }
+    .section-title:first-child { margin-top: 0; }
   </style>
 </head>
 <body>
 
-<h1>유통기한 관리</h1>
-
-<!-- 구글 시트 연동 -->
-<div class="card" id="connectCard">
-  <div class="connect-header" onclick="toggleConnect()">
-    <div class="connect-header-left">
-      <div class="dot" id="statusDot"></div>
-      <span id="statusLabel">구글 시트 연동</span>
-    </div>
-    <span class="chevron" id="chevron">▼</span>
+<div class="app-header">
+  <div class="app-title">
+    <span>🏪</span> 제로초이스 매장관리
   </div>
-  <div class="connect-body hidden" id="connectBody">
-    <input type="text" id="scriptUrl" placeholder="Apps Script 웹 앱 URL 붙여넣기" />
-    <div class="connect-btns">
-      <button class="btn btn-primary" onclick="connectSheet()">연결 · 가져오기</button>
-      <button class="btn btn-green"   onclick="syncFromSheet()">↻ 새로고침</button>
-      <button class="btn btn-danger"  onclick="disconnectSheet()">연결 해제</button>
-    </div>
-    <div class="sync-msg" id="syncMsg"></div>
-    <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
-      시트 B열=상품이름&nbsp;·&nbsp;D열=재고수량&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)<br>
-      Apps Script 코드는 <code>apps-script.js</code> 파일 참고
-    </div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('expiry', this)">
+      <span class="tab-icon">📦</span>유통기한
+    </button>
+    <button class="tab-btn" onclick="switchTab('checklist', this)">
+      <span class="tab-icon">✅</span>체크리스트
+    </button>
+    <button class="tab-btn" onclick="switchTab('agents', this)">
+      <span class="tab-icon">🤖</span>에이전트
+    </button>
+    <button class="tab-btn" onclick="switchTab('reminder', this)">
+      <span class="tab-icon">🔔</span>리마인더
+    </button>
   </div>
 </div>
 
-<!-- 추가 폼 -->
-<div class="card">
-  <div class="form-row">
-    <input id="nameInput" type="text" placeholder="제품명" maxlength="40" />
-    <input id="dateInput" type="date" />
-    <button class="btn-add" id="addBtn" onclick="addItem()">추가</button>
+<!-- ══════════════ 탭1: 유통기한 ══════════════ -->
+<div id="tab-expiry" class="tab-content active">
+  <div class="card" id="connectCard">
+    <div class="connect-header" onclick="toggleConnect()">
+      <div class="connect-header-left">
+        <div class="dot" id="statusDot"></div>
+        <span id="statusLabel">구글 시트 연동</span>
+      </div>
+      <span class="chevron" id="chevron">▼</span>
+    </div>
+    <div class="connect-body hidden" id="connectBody">
+      <input type="text" id="scriptUrl" placeholder="Apps Script 웹 앱 URL 붙여넣기" />
+      <div class="connect-btns">
+        <button class="btn btn-primary" onclick="connectSheet()">연결 · 가져오기</button>
+        <button class="btn btn-green"   onclick="syncFromSheet()">↻ 새로고침</button>
+        <button class="btn btn-danger"  onclick="disconnectSheet()">연결 해제</button>
+      </div>
+      <div class="sync-msg" id="syncMsg"></div>
+      <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
+        시트 B열=상품이름&nbsp;·&nbsp;D열=재고수량&nbsp;·&nbsp;H열=유통기한&nbsp;·&nbsp;J열=ID(자동)<br>
+        Apps Script 코드는 <code>apps-script.js</code> 파일 참고
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="form-row">
+      <input id="nameInput" type="text" placeholder="제품명" maxlength="40" />
+      <input id="dateInput" type="date" />
+      <button class="btn-add" id="addBtn" onclick="addItem()">추가</button>
+    </div>
+  </div>
+
+  <div class="stats" id="stats"></div>
+  <div class="exp-list" id="list"></div>
+  <div class="exp-empty" id="empty" style="display:none">
+    <span>📦</span>제품을 추가해 보세요.
   </div>
 </div>
 
-<div class="stats" id="stats"></div>
+<!-- ══════════════ 탭2: 체크리스트 ══════════════ -->
+<div id="tab-checklist" class="tab-content">
+  <div id="checklist-container"></div>
+  <button class="check-reset-btn" onclick="resetChecklist()">오늘 체크리스트 초기화</button>
+</div>
 
-<div class="list" id="list"></div>
-<div class="empty" id="empty" style="display:none">
-  <span>📦</span>제품을 추가해 보세요.
+<!-- ══════════════ 탭3: 에이전트 ══════════════ -->
+<div id="tab-agents" class="tab-content">
+  <div class="agent-selector">
+    <button class="agent-chip selected" onclick="selectAgent(0, this)">📦 발주도우미</button>
+    <button class="agent-chip" onclick="selectAgent(1, this)">📅 리마인드봇</button>
+    <button class="agent-chip" onclick="selectAgent(2, this)">🛒 재고알리미</button>
+  </div>
+  <div id="agent-info" class="agent-info-card"></div>
+  <div id="chat-area" class="chat-area"></div>
+  <button class="quick-ask-btn" id="quick-ask-btn" onclick="quickAsk()"></button>
+  <div class="chat-input-row" style="margin-top:8px">
+    <input type="text" id="chat-input" placeholder="질문을 입력하세요..." onkeydown="if(event.key==='Enter')sendChat()" />
+    <button class="chat-send" onclick="sendChat()">전송</button>
+  </div>
+</div>
+
+<!-- ══════════════ 탭4: 리마인더 ══════════════ -->
+<div id="tab-reminder" class="tab-content">
+  <div id="reminder-today-section"></div>
+
+  <div class="section-title">요거트 입고일 기록</div>
+  <div class="card yogurt-section">
+    <div style="font-size:0.88rem;color:#555;line-height:1.6;margin-bottom:4px">
+      입고 날짜를 입력하면 <strong>7일 후</strong> 교체 리마인더가 등록돼요.
+    </div>
+    <div class="yogurt-input-row">
+      <input type="date" id="yogurt-date" />
+      <button onclick="logYogurt()">등록</button>
+    </div>
+    <div id="yogurt-log-list" style="margin-top:10px"></div>
+  </div>
+
+  <div class="section-title">이번 주 정기 일정</div>
+  <div id="reminder-week-section"></div>
 </div>
 
 <script>
-  const STORAGE_KEY   = 'expiry_items';
-  const SCRIPT_KEY    = 'gsheet_script_url';
-  const ORDERED_KEY   = 'ordered_ids';
-  const ORDER_LIMIT   = 5; // 발주 필요 기준 수량
+/* ════════════════════════════════════════════
+   공통 유틸
+════════════════════════════════════════════ */
+const DAYS = ['일','월','화','수','목','금','토'];
+const now  = new Date();
+const todayIdx = now.getDay();
 
-  function loadOrdered()        { try { return new Set(JSON.parse(localStorage.getItem(ORDERED_KEY)) || []); } catch { return new Set(); } }
-  function saveOrdered(set)     { localStorage.setItem(ORDERED_KEY, JSON.stringify([...set])); }
-  let orderedSet = loadOrdered();
+function switchTab(name, btnEl) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  btnEl.classList.add('active');
+  if (name === 'agents') { renderAgentInfo(); renderChat(); }
+  if (name === 'reminder') renderReminders();
+  if (name === 'checklist') renderChecklist();
+}
 
-  // ── storage ──────────────────────────────────
+/* ════════════════════════════════════════════
+   탭1: 유통기한 (기존 코드 그대로)
+════════════════════════════════════════════ */
+const STORAGE_KEY = 'expiry_items';
+const SCRIPT_KEY  = 'gsheet_script_url';
+const ORDERED_KEY = 'ordered_ids';
+const ORDER_LIMIT = 5;
 
-  function load()       { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
-  function save(items)  { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
-  function getUrl()     { return localStorage.getItem(SCRIPT_KEY) || ''; }
-  function saveUrl(url) { localStorage.setItem(SCRIPT_KEY, url); }
+function loadOrdered()    { try { return new Set(JSON.parse(localStorage.getItem(ORDERED_KEY)) || []); } catch { return new Set(); } }
+function saveOrdered(set) { localStorage.setItem(ORDERED_KEY, JSON.stringify([...set])); }
+let orderedSet = loadOrdered();
 
-  // ── date / classify ───────────────────────────
+function load()       { try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; } }
+function save(items)  { localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+function getUrl()     { return localStorage.getItem(SCRIPT_KEY) || ''; }
+function saveUrl(url) { localStorage.setItem(SCRIPT_KEY, url); }
 
-  function daysLeft(dateStr) {
-    const t = new Date(); t.setHours(0,0,0,0);
-    const e = new Date(dateStr); e.setHours(0,0,0,0);
-    return Math.round((e - t) / 86400000);
-  }
-
-  function classify(days) {
-    if (days < 0)  return 'expired';
-    if (days <= 3) return 'critical';
-    if (days <= 7) return 'warning';
-    return 'ok';
-  }
-
-  function badgeText(days) {
-    if (days < 0)   return `만료\n${Math.abs(days)}일 전`;
-    if (days === 0) return '오늘\n만료';
-    return `${days}일\n남음`;
-  }
-
-  const PRIORITY = { expired: 0, critical: 1, warning: 2, ok: 3 };
-
-  function sortItems(items) {
-    return [...items].sort((a, b) => {
-      const pa = PRIORITY[classify(daysLeft(a.date))];
-      const pb = PRIORITY[classify(daysLeft(b.date))];
-      if (pa !== pb) return pa - pb;
-      return new Date(a.date) - new Date(b.date);
-    });
-  }
-
-  let activeFilter = null;
-
-  function setFilter(type) {
-    activeFilter = (activeFilter === type) ? null : type;
-    render();
-  }
-
-  // ── API ──────────────────────────────────────
-
-  async function apiGet(params) {
-    const url = getUrl();
-    if (!url) throw new Error('URL 없음');
-    const qs = new URLSearchParams(params).toString();
-    const res = await fetch(`${url}?${qs}`);
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const json = await res.json();
-    if (json.error) throw new Error(json.error);
-    return json;
-  }
-
-  // ── sheet connect / sync ──────────────────────
-
-  function toggleConnect() {
-    const body = document.getElementById('connectBody');
-    const chev = document.getElementById('chevron');
-    const open = !body.classList.contains('hidden');
-    body.classList.toggle('hidden', open);
-    chev.classList.toggle('open', !open);
-    if (!open) document.getElementById('scriptUrl').value = getUrl();
-  }
-
-  async function connectSheet() {
-    const url = document.getElementById('scriptUrl').value.trim();
-    if (!url) { setMsg('URL을 입력해 주세요.', 'err'); return; }
-    saveUrl(url);
-    await syncFromSheet();
-  }
-
-  async function syncFromSheet() {
-    if (!getUrl()) { setMsg('먼저 URL을 연결해 주세요.', 'err'); return; }
-    setDot('syncing'); setMsg('시트에서 가져오는 중…');
-    try {
-      const data = await apiGet({ action: 'list' });
-      save(data.items);
-      setDot('connected');
-      setMsg(`완료 · ${data.items.length}개 항목`, 'ok');
-      render();
-    } catch (e) {
-      setDot('error'); setMsg('오류: ' + e.message, 'err');
-    }
-  }
-
-  function disconnectSheet() {
-    localStorage.removeItem(SCRIPT_KEY);
-    setDot(''); setMsg('');
-    document.getElementById('scriptUrl').value = '';
-    render();
-  }
-
-  // ── add / delete ──────────────────────────────
-
-  async function addItem() {
-    const name = document.getElementById('nameInput').value.trim();
-    const date = document.getElementById('dateInput').value;
-    if (!name) { alert('제품명을 입력해 주세요.'); return; }
-    if (!date) { alert('유통기한을 선택해 주세요.'); return; }
-
-    const id    = 'id_' + Date.now();
-    const items = load();
-    items.push({ id, name, date });
-    save(items);
-
-    document.getElementById('nameInput').value = '';
-    document.getElementById('dateInput').value = '';
-    document.getElementById('nameInput').focus();
-    render();
-
-    // 시트 연동 중이면 비동기로 push
-    if (getUrl()) {
-      setDot('syncing');
-      try {
-        await apiGet({ action: 'add', id, name, date });
-        setDot('connected'); setMsg('시트에 추가됨', 'ok');
-      } catch (e) {
-        setDot('error'); setMsg('시트 추가 실패: ' + e.message, 'err');
-      }
-    }
-  }
-
-  async function changeQty(id, delta, btnEl) {
-    const items = load();
-    const item  = items.find(i => i.id === id);
-    if (!item) return;
-
-    const cur  = item.qty !== null && item.qty !== undefined ? item.qty : 0;
-    const next = Math.max(0, cur + delta);
-    await applyQty(id, next);
-  }
-
-  async function setQty(id, inputEl) {
-    const val = inputEl.value.trim();
-    if (val === '') return;
-    const next = Math.max(0, Math.round(Number(val)));
-    inputEl.value = next;
-    inputEl.classList.toggle('zero', next === 0);
-    await applyQty(id, next);
-  }
-
-  async function applyQty(id, next) {
-    const items = load();
-    const item  = items.find(i => i.id === id);
-    if (!item) return;
-    item.qty = next;
-    save(items);
-    render();
-
-    if (getUrl()) {
-      try {
-        await apiGet({ action: 'qty', id, qty: next });
-      } catch (e) {
-        setMsg('수량 업데이트 실패: ' + e.message, 'err');
-      }
-    }
-  }
-
-  async function deleteItem(id, btnEl) {
-    if (btnEl) btnEl.disabled = true;
-    const items = load().filter(i => i.id !== id);
-    save(items);
-    render();
-
-    if (getUrl()) {
-      setDot('syncing');
-      try {
-        await apiGet({ action: 'delete', id });
-        setDot('connected'); setMsg('시트에서 삭제됨', 'ok');
-      } catch (e) {
-        setDot('error'); setMsg('시트 삭제 실패: ' + e.message, 'err');
-      }
-    }
-  }
-
-  // ── ui helpers ────────────────────────────────
-
-  function setDot(state) {
-    const d = document.getElementById('statusDot');
-    d.className = 'dot' + (state ? ' ' + state : '');
-    const labels = { connected: '구글 시트 연동됨', syncing: '동기화 중…', error: '연동 오류', '': '구글 시트 연동' };
-    document.getElementById('statusLabel').textContent = labels[state] ?? '구글 시트 연동';
-  }
-
-  function setMsg(text, type = '') {
-    const el = document.getElementById('syncMsg');
-    el.textContent = text;
-    el.className = 'sync-msg' + (type ? ' ' + type : '');
-  }
-
-  // ── render ────────────────────────────────────
-
-  function render() {
-    const all     = sortItems(load());
-    const listEl  = document.getElementById('list');
-    const emptyEl = document.getElementById('empty');
-    const statsEl = document.getElementById('stats');
-
-    listEl.innerHTML = '';
-
-    if (!all.length) {
-      emptyEl.style.display = 'block';
-      statsEl.innerHTML = '';
-      return;
-    }
-    emptyEl.style.display = 'none';
-
-    orderedSet = loadOrdered();
-    const orderCount = all.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT).length;
-
-    // 전체 기준 카운트 (칩 숫자는 필터 무관하게 항상 전체 수)
-    const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
-    all.forEach(item => counts[classify(daysLeft(item.date))]++);
-
-    // 필터 적용
-    const items = activeFilter
-      ? all.filter(item => {
-          const cls = classify(daysLeft(item.date));
-          if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
-          if (activeFilter === 'warning') return cls === 'warning';
-          if (activeFilter === 'ok')      return cls === 'ok';
-          if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
-          return true;
-        })
-      : all;
-
-    items.forEach(item => {
-      const days = daysLeft(item.date);
-      const cls  = classify(days);
-      const qty     = item.qty;
-      const hasQty  = qty !== null && qty !== undefined;
-      const qtyClass = hasQty && qty === 0 ? ' zero' : '';
-      const needsOrder = hasQty && qty <= 5;
-      const isOrdered  = orderedSet.has(item.id);
-
-      const div = document.createElement('div');
-      div.className = `item ${cls}${isOrdered ? ' ordered' : ''}`;
-      div.innerHTML = `
-        <div class="badge">${badgeText(days)}</div>
-        <div class="info">
-          <div class="name">${item.name}</div>
-          <div class="date">만료일: ${item.date}</div>
-          ${needsOrder ? `<span class="order-badge">🛒 발주필요 (${qty}개)</span>` : ''}
-          <div class="qty-wrap">
-            <button class="qty-btn" onclick="changeQty('${item.id}', -1, this)" title="감소">−</button>
-            <input class="qty-input${qtyClass}" type="number" min="0"
-              value="${hasQty ? qty : ''}" placeholder="—"
-              onchange="setQty('${item.id}', this)"
-              onkeydown="if(event.key==='Enter') this.blur()" />
-            <span class="qty-label">개</span>
-            <button class="qty-btn" onclick="changeQty('${item.id}', +1, this)" title="증가">＋</button>
-          </div>
-          <label class="ordered-check">
-            <input type="checkbox" ${isOrdered ? 'checked' : ''}
-              onchange="toggleOrdered('${item.id}', this.checked)" />
-            발주완료
-          </label>
-        </div>
-        <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>
-      `;
-      listEl.appendChild(div);
-    });
-
-    const urgent = counts.critical + counts.expired;
-    const chips = [
-      { key: null,      cls: 'chip-total',  label: `전체 ${all.length}` },
-      { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,              show: urgent > 0 },
-      { key: 'warning', cls: 'chip-warn',   label: `주의 ${counts.warning}`,      show: counts.warning > 0 },
-      { key: 'ok',      cls: 'chip-ok',     label: `안전 ${counts.ok}`,           show: counts.ok > 0 },
-      { key: 'order',   cls: 'chip-order',  label: `🛒 발주필요 ${orderCount}`,   show: orderCount > 0 },
-    ];
-
-    statsEl.innerHTML = chips
-      .filter(c => c.key === null || c.show)
-      .map(c => {
-        const isActive  = activeFilter === c.key;
-        const isDimmed  = activeFilter !== null && !isActive;
-        const cls = ['stat-chip', c.cls, isActive ? 'active' : '', isDimmed ? 'dimmed' : ''].join(' ').trim();
-        const fn  = c.key ? `setFilter('${c.key}')` : `setFilter(null)`;
-        return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
-      }).join('');
-  }
-
-  // ── 발주 ─────────────────────────────────────
-
-  function toggleOrdered(id, checked) {
-    orderedSet = loadOrdered();
-    if (checked) orderedSet.add(id);
-    else         orderedSet.delete(id);
-    saveOrdered(orderedSet);
-    render();
-  }
-
-
-  // ── keyboard ──────────────────────────────────
-
-  document.getElementById('nameInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') document.getElementById('dateInput').focus();
+function daysLeft(dateStr) {
+  const t = new Date(); t.setHours(0,0,0,0);
+  const e = new Date(dateStr); e.setHours(0,0,0,0);
+  return Math.round((e - t) / 86400000);
+}
+function classify(days) {
+  if (days < 0)  return 'expired';
+  if (days <= 3) return 'critical';
+  if (days <= 7) return 'warning';
+  return 'ok';
+}
+function badgeText(days) {
+  if (days < 0)   return `만료\n${Math.abs(days)}일 전`;
+  if (days === 0) return '오늘\n만료';
+  return `${days}일\n남음`;
+}
+const PRIORITY = { expired: 0, critical: 1, warning: 2, ok: 3 };
+function sortItems(items) {
+  return [...items].sort((a, b) => {
+    const pa = PRIORITY[classify(daysLeft(a.date))];
+    const pb = PRIORITY[classify(daysLeft(b.date))];
+    if (pa !== pb) return pa - pb;
+    return new Date(a.date) - new Date(b.date);
   });
-  document.getElementById('dateInput').addEventListener('keydown', e => {
-    if (e.key === 'Enter') addItem();
-  });
+}
 
-  // ── init ─────────────────────────────────────
+let activeFilter = null;
+function setFilter(type) { activeFilter = (activeFilter === type) ? null : type; renderExpiry(); }
 
-  if (getUrl()) {
+async function apiGet(params) {
+  const url = getUrl();
+  if (!url) throw new Error('URL 없음');
+  const qs  = new URLSearchParams(params).toString();
+  const res = await fetch(`${url}?${qs}`);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  if (json.error) throw new Error(json.error);
+  return json;
+}
+
+function toggleConnect() {
+  const body = document.getElementById('connectBody');
+  const chev = document.getElementById('chevron');
+  const open = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', open);
+  chev.classList.toggle('open', !open);
+  if (!open) document.getElementById('scriptUrl').value = getUrl();
+}
+
+async function connectSheet() {
+  const url = document.getElementById('scriptUrl').value.trim();
+  if (!url) { setMsg('URL을 입력해 주세요.', 'err'); return; }
+  saveUrl(url);
+  await syncFromSheet();
+}
+
+async function syncFromSheet() {
+  if (!getUrl()) { setMsg('먼저 URL을 연결해 주세요.', 'err'); return; }
+  setDot('syncing'); setMsg('시트에서 가져오는 중…');
+  try {
+    const data = await apiGet({ action: 'list' });
+    save(data.items);
     setDot('connected');
-    document.getElementById('scriptUrl').value = getUrl();
-    syncFromSheet(); // 페이지 열릴 때 시트에서 자동 동기화
-  } else {
-    render();
+    setMsg(`완료 · ${data.items.length}개 항목`, 'ok');
+    renderExpiry();
+  } catch (e) {
+    setDot('error'); setMsg('오류: ' + e.message, 'err');
   }
+}
+
+function disconnectSheet() {
+  localStorage.removeItem(SCRIPT_KEY);
+  setDot(''); setMsg('');
+  document.getElementById('scriptUrl').value = '';
+  renderExpiry();
+}
+
+async function addItem() {
+  const name = document.getElementById('nameInput').value.trim();
+  const date = document.getElementById('dateInput').value;
+  if (!name) { alert('제품명을 입력해 주세요.'); return; }
+  if (!date) { alert('유통기한을 선택해 주세요.'); return; }
+  const id    = 'id_' + Date.now();
+  const items = load();
+  items.push({ id, name, date });
+  save(items);
+  document.getElementById('nameInput').value = '';
+  document.getElementById('dateInput').value = '';
+  document.getElementById('nameInput').focus();
+  renderExpiry();
+  if (getUrl()) {
+    setDot('syncing');
+    try {
+      await apiGet({ action: 'add', id, name, date });
+      setDot('connected'); setMsg('시트에 추가됨', 'ok');
+    } catch (e) {
+      setDot('error'); setMsg('시트 추가 실패: ' + e.message, 'err');
+    }
+  }
+}
+
+async function changeQty(id, delta) {
+  const items = load();
+  const item  = items.find(i => i.id === id);
+  if (!item) return;
+  const cur  = item.qty !== null && item.qty !== undefined ? item.qty : 0;
+  await applyQty(id, Math.max(0, cur + delta));
+}
+
+async function setQty(id, inputEl) {
+  const val = inputEl.value.trim();
+  if (val === '') return;
+  const next = Math.max(0, Math.round(Number(val)));
+  inputEl.value = next;
+  inputEl.classList.toggle('zero', next === 0);
+  await applyQty(id, next);
+}
+
+async function applyQty(id, next) {
+  const items = load();
+  const item  = items.find(i => i.id === id);
+  if (!item) return;
+  item.qty = next;
+  save(items);
+  renderExpiry();
+  if (getUrl()) {
+    try { await apiGet({ action: 'qty', id, qty: next }); }
+    catch (e) { setMsg('수량 업데이트 실패: ' + e.message, 'err'); }
+  }
+}
+
+async function deleteItem(id, btnEl) {
+  if (btnEl) btnEl.disabled = true;
+  const items = load().filter(i => i.id !== id);
+  save(items);
+  renderExpiry();
+  if (getUrl()) {
+    setDot('syncing');
+    try {
+      await apiGet({ action: 'delete', id });
+      setDot('connected'); setMsg('시트에서 삭제됨', 'ok');
+    } catch (e) {
+      setDot('error'); setMsg('시트 삭제 실패: ' + e.message, 'err');
+    }
+  }
+}
+
+function setDot(state) {
+  const d = document.getElementById('statusDot');
+  d.className = 'dot' + (state ? ' ' + state : '');
+  const labels = { connected: '구글 시트 연동됨', syncing: '동기화 중…', error: '연동 오류', '': '구글 시트 연동' };
+  document.getElementById('statusLabel').textContent = labels[state] ?? '구글 시트 연동';
+}
+function setMsg(text, type = '') {
+  const el = document.getElementById('syncMsg');
+  el.textContent = text;
+  el.className   = 'sync-msg' + (type ? ' ' + type : '');
+}
+
+function toggleOrdered(id, checked) {
+  orderedSet = loadOrdered();
+  if (checked) orderedSet.add(id);
+  else         orderedSet.delete(id);
+  saveOrdered(orderedSet);
+  renderExpiry();
+}
+
+function renderExpiry() {
+  const all     = sortItems(load());
+  const listEl  = document.getElementById('list');
+  const emptyEl = document.getElementById('empty');
+  const statsEl = document.getElementById('stats');
+  listEl.innerHTML = '';
+  if (!all.length) { emptyEl.style.display = 'block'; statsEl.innerHTML = ''; return; }
+  emptyEl.style.display = 'none';
+  orderedSet = loadOrdered();
+  const orderCount = all.filter(i => i.qty !== null && i.qty !== undefined && i.qty <= ORDER_LIMIT).length;
+  const counts = { expired: 0, critical: 0, warning: 0, ok: 0 };
+  all.forEach(item => counts[classify(daysLeft(item.date))]++);
+  const items = activeFilter
+    ? all.filter(item => {
+        const cls = classify(daysLeft(item.date));
+        if (activeFilter === 'urgent')  return cls === 'expired' || cls === 'critical';
+        if (activeFilter === 'warning') return cls === 'warning';
+        if (activeFilter === 'ok')      return cls === 'ok';
+        if (activeFilter === 'order')   return item.qty !== null && item.qty !== undefined && item.qty <= ORDER_LIMIT;
+        return true;
+      })
+    : all;
+  items.forEach(item => {
+    const days = daysLeft(item.date);
+    const cls  = classify(days);
+    const qty  = item.qty;
+    const hasQty  = qty !== null && qty !== undefined;
+    const qtyClass = hasQty && qty === 0 ? ' zero' : '';
+    const needsOrder = hasQty && qty <= 5;
+    const isOrdered  = orderedSet.has(item.id);
+    const div = document.createElement('div');
+    div.className = `item ${cls}${isOrdered ? ' ordered' : ''}`;
+    div.innerHTML = `
+      <div class="badge">${badgeText(days)}</div>
+      <div class="info">
+        <div class="name">${item.name}</div>
+        <div class="date">만료일: ${item.date}</div>
+        ${needsOrder ? `<span class="order-badge">🛒 발주필요 (${qty}개)</span>` : ''}
+        <div class="qty-wrap">
+          <button class="qty-btn" onclick="changeQty('${item.id}', -1)" title="감소">−</button>
+          <input class="qty-input${qtyClass}" type="number" min="0"
+            value="${hasQty ? qty : ''}" placeholder="—"
+            onchange="setQty('${item.id}', this)"
+            onkeydown="if(event.key==='Enter') this.blur()" />
+          <span class="qty-label">개</span>
+          <button class="qty-btn" onclick="changeQty('${item.id}', +1)" title="증가">＋</button>
+        </div>
+        <label class="ordered-check">
+          <input type="checkbox" ${isOrdered ? 'checked' : ''}
+            onchange="toggleOrdered('${item.id}', this.checked)" />
+          발주완료
+        </label>
+      </div>
+      <button class="del-btn" title="삭제" onclick="deleteItem('${item.id}', this)">✕</button>`;
+    listEl.appendChild(div);
+  });
+  const urgent = counts.critical + counts.expired;
+  const chips = [
+    { key: null,      cls: 'chip-total',  label: `전체 ${all.length}` },
+    { key: 'urgent',  cls: 'chip-urgent', label: `위험 ${urgent}`,              show: urgent > 0 },
+    { key: 'warning', cls: 'chip-warn',   label: `주의 ${counts.warning}`,      show: counts.warning > 0 },
+    { key: 'ok',      cls: 'chip-ok',     label: `안전 ${counts.ok}`,           show: counts.ok > 0 },
+    { key: 'order',   cls: 'chip-order',  label: `🛒 발주필요 ${orderCount}`,   show: orderCount > 0 },
+  ];
+  statsEl.innerHTML = chips
+    .filter(c => c.key === null || c.show)
+    .map(c => {
+      const isActive = activeFilter === c.key;
+      const isDimmed = activeFilter !== null && !isActive;
+      const cls = ['stat-chip', c.cls, isActive ? 'active' : '', isDimmed ? 'dimmed' : ''].join(' ').trim();
+      const fn  = c.key ? `setFilter('${c.key}')` : `setFilter(null)`;
+      return `<button class="${cls}" onclick="${fn}">${c.label}</button>`;
+    }).join('');
+}
+
+document.getElementById('nameInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('dateInput').focus();
+});
+document.getElementById('dateInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter') addItem();
+});
+
+/* ════════════════════════════════════════════
+   탭2: 체크리스트
+════════════════════════════════════════════ */
+const CHECK_KEY      = 'checklist_state';
+const CHECK_DATE_KEY = 'checklist_date';
+
+const checklistDef = [
+  {
+    group: '매일 체크', key: 'daily',
+    resetDaily: true,   // 날짜 바뀌면 자동 초기화
+    items: [
+      '매장 바닥 청소','진열 상태 정리','재고 부족 상품 확인','빈 상품 채워넣기',
+      '창문 청소','냉장고 유리문 청소','유통기한 임박 상품 확인'
+    ]
+  },
+  {
+    group: '주간 체크 (매주 토·일)', key: 'weekly', resetWeekly: true,
+    items: [
+      '쓰레기통 비우기 (3~4일 간격)','포충기 상태 확인','가격표 및 POP 상태 확인',
+      '품절 상품 목록 정리','냉동고 성에 상태 확인','청소용품 및 소모품 재고 확인'
+    ]
+  },
+  {
+    group: '문제 발생 시', key: 'issue',
+    items: [
+      '파손 상품 사진 촬영','벌레 발견 시 사진 촬영','결제 오류 확인 및 전달',
+      '냉장고·냉동고 이상 확인 및 전달','기타 특이사항 전달'
+    ]
+  },
+  {
+    group: '상품 입고 시', key: 'receive',
+    items: [
+      '상품 수량 확인','상품 상태 확인','진열','신상품 바코드 스캔 테스트',
+      '가격표 확인','유통기한 확인'
+    ]
+  },
+  {
+    group: '월 1회 (매월 마지막 주 일요일)', key: 'monthly',
+    items: [
+      '영수증 출력 테스트','영수증 용지 잔량 확인','카드결제 테스트',
+      '냉장고·냉동고 온도 확인','유통기한 전수 점검',
+      '진열대 대청소','문풍지·문틈 상태 확인'
+    ]
+  }
+];
+
+// 오늘 요일에 맞는 정기 업무 동적 추가
+const daySpecific = {
+  2: { group: '정기 업무 · 화요일', key: 'tue', items: ['오후 2시 요거트 입고 확인','수량 확인','상품 진열'] },
+  3: { group: '정기 업무 · 수요일', key: 'wed', items: ['부족 상품 정리','발주 요청 목록 전달'] },
+  0: { group: '정기 업무 · 일요일', key: 'sun', items: ['부족 상품 정리','발주 요청 목록 전달'] },
+};
+if (daySpecific[todayIdx]) {
+  checklistDef.unshift(daySpecific[todayIdx]);
+}
+
+function todayDateStr() {
+  return now.toISOString().split('T')[0];
+}
+
+function isSatOrSun(dateStr) {
+  const d = new Date(dateStr); return d.getDay() === 0 || d.getDay() === 6;
+}
+function isLastSundayWeek(dateStr) {
+  // 해당 날짜가 속한 달의 마지막 주 일요일 여부 판단
+  const d = new Date(dateStr);
+  if (d.getDay() !== 0) return false; // 일요일이 아니면 false
+  const nextSun = new Date(d); nextSun.setDate(d.getDate() + 7);
+  return nextSun.getMonth() !== d.getMonth(); // 다음 주 일요일이 다음 달이면 마지막 주 일요일
+}
+function getWeekStr(dateStr) {
+  // ISO 주차 문자열 반환 (YYYY-Www) — 주간 초기화 기준
+  const d   = new Date(dateStr);
+  const day = d.getDay() || 7;
+  d.setDate(d.getDate() + 4 - day);
+  const year = d.getFullYear();
+  const week = Math.ceil(((d - new Date(year, 0, 1)) / 86400000 + 1) / 7);
+  return year + '-W' + String(week).padStart(2, '0');
+}
+
+function loadCheckState() {
+  try {
+    const saved      = JSON.parse(localStorage.getItem(CHECK_KEY)) || {};
+    const savedDate  = localStorage.getItem(CHECK_DATE_KEY) || '';
+    const today      = todayDateStr();
+    if (savedDate !== today) {
+      // 매일 체크 초기화
+      const dailyKeys = checklistDef
+        .filter(s => s.resetDaily)
+        .flatMap(s => s.items.map((_, i) => s.key + '_' + i));
+      dailyKeys.forEach(k => delete saved[k]);
+      // 정기 업무(화·수·일) 초기화
+      ['tue','wed','sun'].forEach(k => {
+        for (let i = 0; i < 5; i++) delete saved[k + '_' + i];
+      });
+      // 주간 체크: 저장된 날짜와 오늘의 주차가 다르고, 오늘이 토·일이면 초기화
+      const savedWeek = getWeekStr(savedDate || today);
+      const todayWeek = getWeekStr(today);
+      if (savedDate && savedWeek !== todayWeek && isSatOrSun(today)) {
+        const weeklyKeys = checklistDef
+          .filter(s => s.resetWeekly)
+          .flatMap(s => s.items.map((_, i) => s.key + '_' + i));
+        weeklyKeys.forEach(k => delete saved[k]);
+      }
+      // 월 1회: 저장된 날짜와 오늘 월이 다르고, 오늘이 마지막 주 일요일이면 초기화
+      const savedMonth = (savedDate || '').slice(0, 7);
+      const todayMonth = today.slice(0, 7);
+      if (savedDate && savedMonth !== todayMonth && isLastSundayWeek(today)) {
+        const monthlyKeys = checklistDef
+          .filter(s => s.key === 'monthly')
+          .flatMap(s => s.items.map((_, i) => s.key + '_' + i));
+        monthlyKeys.forEach(k => delete saved[k]);
+      }
+      localStorage.setItem(CHECK_DATE_KEY, today);
+      localStorage.setItem(CHECK_KEY, JSON.stringify(saved));
+    }
+    return saved;
+  } catch { return {}; }
+}
+function saveCheckState(state) {
+  localStorage.setItem(CHECK_KEY, JSON.stringify(state));
+  localStorage.setItem(CHECK_DATE_KEY, todayDateStr());
+}
+
+function toggleCheck(groupKey, idx) {
+  const state = loadCheckState();
+  const k = groupKey + '_' + idx;
+  state[k] = !state[k];
+  saveCheckState(state);
+  renderChecklist();
+}
+
+function resetChecklist() {
+  if (confirm('오늘 체크리스트를 초기화할까요?')) {
+    localStorage.removeItem(CHECK_KEY);
+    renderChecklist();
+  }
+}
+
+function renderChecklist() {
+  const container = document.getElementById('checklist-container');
+  const state = loadCheckState();
+  container.innerHTML = '';
+  checklistDef.forEach(section => {
+    const done  = section.items.filter((_, i) => state[section.key + '_' + i]).length;
+    const total = section.items.length;
+    const div   = document.createElement('div');
+    div.className = 'check-group';
+    const body = document.createElement('div');
+    body.id = 'cg-body-' + section.key;
+    section.items.forEach((item, i) => {
+      const checked = !!state[section.key + '_' + i];
+      const row = document.createElement('div');
+      row.className = 'check-item' + (checked ? ' checked' : '');
+      row.innerHTML = `
+        <div class="check-box">${checked ? '✓' : ''}</div>
+        <span class="check-label">${item}</span>`;
+      row.onclick = () => toggleCheck(section.key, i);
+      body.appendChild(row);
+    });
+    const resetTag = section.resetDaily
+      ? '<span style="font-size:0.7rem;color:#aaa;font-weight:400;margin-left:6px">매일 자동초기화</span>'
+      : section.resetWeekly
+      ? '<span style="font-size:0.7rem;color:#aaa;font-weight:400;margin-left:6px">토·일 자동초기화</span>'
+      : section.key === 'monthly'
+      ? '<span style="font-size:0.7rem;color:#aaa;font-weight:400;margin-left:6px">마지막 주 일요일 초기화</span>'
+      : '';
+    div.innerHTML = `
+      <div class="check-group-header" onclick="toggleCheckGroup('${section.key}')">
+        <span>${section.group}${resetTag}</span>
+        <span class="check-progress">${done}/${total}</span>
+      </div>`;
+    div.appendChild(body);
+    container.appendChild(div);
+  });
+}
+
+function toggleCheckGroup(key) {
+  const body = document.getElementById('cg-body-' + key);
+  if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+/* ════════════════════════════════════════════
+   탭3: 에이전트
+════════════════════════════════════════════ */
+const agents = [
+  {
+    name: '📦 발주도우미',
+    desc: '수요일·일요일 발주 전날, 재고를 분석해서 발주 목록을 정리해드려요. 음료(쿠팡)와 일반 발주를 구분해서 알려줄게요.',
+    hint: '오늘 발주 목록 정리해줘',
+    system: `당신은 무인 편의점 발주 도우미입니다. 사용자가 요청하면 현재 재고 상황을 분석해 발주가 필요한 상품 목록을 정리해 주세요. 발주일은 수요일과 일요일입니다. 음료(콜라, 사이다, 생수 등)는 쿠팡 주문 대상으로 별도 구분하세요. 재고 5개 이하인 상품을 우선 발주 대상으로 안내하세요. 한국어로 간결하게 답변하세요.`
+  },
+  {
+    name: '📅 리마인드봇',
+    desc: '오늘 요일에 맞는 정기 업무와 해야 할 일을 알려드려요. 화요일엔 요거트 입고 체크, 수·일요일엔 발주 알림!',
+    hint: '오늘 뭐 해야 해?',
+    system: `당신은 무인 편의점 리마인더 봇입니다. 오늘 요일에 맞는 정기 업무를 알려주세요. 화요일: 오후 2시 요거트 입고 확인 및 진열. 수요일/일요일: 부족 상품 정리 후 발주 요청 전달. 매일: 바닥 청소, 진열 확인, 냉장고 확인 등 기본 점검. 유통기한 임박 상품 확인도 안내하세요. 한국어로 친근하게 답변하세요.`
+  },
+  {
+    name: '🛒 재고알리미',
+    desc: '재고가 5개 이하인 상품을 찾아 주문 목록을 알려드려요. 음료류는 쿠팡 주문 안내도 함께 해드려요.',
+    hint: '지금 뭐 주문해야 해?',
+    system: `당신은 무인 편의점 재고 알리미입니다. 재고가 5개 이하인 상품을 찾아서 주문해야 할 목록을 알려주세요. 음료류(콜라, 사이다, 생수, 아이스티 등)는 쿠팡에서 주문 가능하다고 별도 안내하세요. 나머지 상품은 일반 발주 대상으로 안내하세요. 한국어로 명확하게 답변하세요.`
+  }
+];
+
+let selectedAgentIdx  = 0;
+const chatHistories   = [[], [], []];
+
+function selectAgent(idx, btnEl) {
+  selectedAgentIdx = idx;
+  document.querySelectorAll('.agent-chip').forEach((b, i) => b.classList.toggle('selected', i === idx));
+  renderAgentInfo();
+  renderChat();
+}
+
+function renderAgentInfo() {
+  const a = agents[selectedAgentIdx];
+  document.getElementById('agent-info').innerHTML =
+    `<strong>${a.name}</strong><br>${a.desc}`;
+  document.getElementById('quick-ask-btn').textContent = `✨ "${a.hint}" 바로 물어보기`;
+}
+
+function renderChat() {
+  const area    = document.getElementById('chat-area');
+  const history = chatHistories[selectedAgentIdx];
+  area.innerHTML = '';
+  if (!history.length) {
+    area.innerHTML = `<div style="text-align:center;padding:30px 0;color:#bbb;font-size:0.88rem">${agents[selectedAgentIdx].name}에게 질문해보세요!</div>`;
+    return;
+  }
+  history.forEach(msg => {
+    const div = document.createElement('div');
+    div.className = 'chat-msg ' + msg.role;
+    div.innerHTML = `<div class="chat-bubble">${msg.content}</div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+function quickAsk() {
+  document.getElementById('chat-input').value = agents[selectedAgentIdx].hint;
+  sendChat();
+}
+
+async function sendChat() {
+  const input = document.getElementById('chat-input');
+  const text  = input.value.trim();
+  if (!text) return;
+  input.value = '';
+
+  const history = chatHistories[selectedAgentIdx];
+  const agent   = agents[selectedAgentIdx];
+  history.push({ role: 'user', content: text });
+  renderChat();
+
+  // 로딩 버블
+  const area = document.getElementById('chat-area');
+  const loading = document.createElement('div');
+  loading.className = 'chat-msg bot';
+  loading.innerHTML = `<div class="chat-bubble"><div class="typing-dots"><span></span><span></span><span></span></div></div>`;
+  area.appendChild(loading);
+  area.scrollTop = area.scrollHeight;
+
+  // 재고 컨텍스트 (유통기한 탭 데이터 활용)
+  const invItems  = load();
+  const invCtx    = invItems.length
+    ? invItems.map(i => `${i.name} ${i.qty !== undefined && i.qty !== null ? i.qty + '개' : '수량미입력'} (유통기한 ${i.date})`).join(', ')
+    : '재고 데이터 없음';
+  const lowItems  = invItems.filter(i => i.qty !== undefined && i.qty !== null && i.qty <= 5)
+    .map(i => `${i.name}(${i.qty}개)`).join(', ') || '없음';
+  const todayStr  = now.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });
+  const dayName   = DAYS[todayIdx] + '요일';
+
+  const messages = [
+    { role: 'user', content: `[매장 컨텍스트] 오늘: ${todayStr} ${dayName} / 전체재고: ${invCtx} / 5개 이하 부족: ${lowItems}` },
+    { role: 'assistant', content: '매장 정보를 확인했습니다. 무엇을 도와드릴까요?' },
+    ...history.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
+  ];
+
+  try {
+    const res  = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 1000,
+        system: agent.system,
+        messages
+      })
+    });
+    const data  = await res.json();
+    const reply = data.content?.find(b => b.type === 'text')?.text || '응답을 받지 못했어요.';
+    area.removeChild(loading);
+    history.push({ role: 'bot', content: reply.replace(/\n/g, '<br>') });
+    renderChat();
+  } catch (e) {
+    area.removeChild(loading);
+    history.push({ role: 'bot', content: '오류가 발생했어요. 잠시 후 다시 시도해주세요.' });
+    renderChat();
+  }
+}
+
+/* ════════════════════════════════════════════
+   탭4: 리마인더
+════════════════════════════════════════════ */
+const YOGURT_KEY = 'yogurt_logs';
+
+function loadYogurtLogs()     { try { return JSON.parse(localStorage.getItem(YOGURT_KEY)) || []; } catch { return []; } }
+function saveYogurtLogs(logs) { localStorage.setItem(YOGURT_KEY, JSON.stringify(logs)); }
+
+function logYogurt() {
+  const d = document.getElementById('yogurt-date').value;
+  if (!d) { alert('날짜를 선택해 주세요.'); return; }
+  const logs = loadYogurtLogs();
+  const removeDate = new Date(d);
+  removeDate.setDate(removeDate.getDate() + 7);
+  logs.unshift({ filled: d, remove: removeDate.toISOString().split('T')[0] });
+  saveYogurtLogs(logs);
+  document.getElementById('yogurt-date').value = '';
+  renderReminders();
+}
+
+const weeklySchedule = [
+  { day: 2, title: '요거트 입고 확인', detail: '오후 2시 요거트 입고 예정 — 수량 확인 후 진열', icon: '🥛' },
+  { day: 3, title: '수요일 발주', detail: '부족 상품 정리 후 남자친구에게 발주 목록 전달', icon: '📦' },
+  { day: 0, title: '일요일 발주', detail: '부족 상품 정리 후 남자친구에게 발주 목록 전달', icon: '📦' },
+];
+
+function renderReminders() {
+  const todayEl   = document.getElementById('reminder-today-section');
+  const weekEl    = document.getElementById('reminder-week-section');
+  const tomorrow  = (todayIdx + 1) % 7;
+  todayEl.innerHTML = '';
+  weekEl.innerHTML  = '';
+
+  // 오늘/내일 일정
+  const todayLabel = document.createElement('div');
+  todayLabel.className = 'section-title';
+  todayLabel.textContent = `오늘 (${DAYS[todayIdx]}요일) 일정`;
+  todayEl.appendChild(todayLabel);
+
+  let hasTodayTask = false;
+  weeklySchedule.forEach(s => {
+    if (s.day === todayIdx || s.day === tomorrow) {
+      hasTodayTask = true;
+      const isToday = s.day === todayIdx;
+      const card = document.createElement('div');
+      card.className = 'reminder-card ' + (isToday ? 'today' : 'soon');
+      card.innerHTML = `
+        <span class="reminder-badge ${isToday ? 'rb-today' : 'rb-soon'}">${isToday ? '오늘' : '내일'}</span>
+        <div class="reminder-title">${s.icon} ${s.title}</div>
+        <div class="reminder-detail">${s.detail}</div>`;
+      todayEl.appendChild(card);
+    }
+  });
+
+  // 기본 매일 업무
+  const dailyCard = document.createElement('div');
+  dailyCard.className = 'reminder-card normal';
+  dailyCard.innerHTML = `
+    <span class="reminder-badge rb-normal">매일</span>
+    <div class="reminder-title">🧹 매일 점검</div>
+    <div class="reminder-detail">바닥 청소 · 진열 정리 · 재고 확인 · 냉장고 상태 · CCTV · 유통기한 임박 상품 확인</div>`;
+  todayEl.appendChild(dailyCard);
+
+  // 요거트 로그
+  const logs = loadYogurtLogs();
+  const logList = document.getElementById('yogurt-log-list');
+  logList.innerHTML = '';
+  if (logs.length === 0) {
+    logList.innerHTML = '<div style="font-size:0.82rem;color:#bbb;padding:8px 0">아직 입고 기록이 없어요.</div>';
+  } else {
+    logs.slice(0, 5).forEach(l => {
+      const removeDate = new Date(l.remove);
+      const diff = Math.ceil((removeDate - now) / (1000 * 60 * 60 * 24));
+      let badgeCls, msg;
+      if (diff < 0)      { badgeCls = 'rb-today'; msg = '⚠️ 교체 기한 지남!'; }
+      else if (diff === 0){ badgeCls = 'rb-today'; msg = '오늘 교체!'; }
+      else if (diff <= 2) { badgeCls = 'rb-soon';  msg = `${diff}일 후 교체`; }
+      else                { badgeCls = 'rb-ok';    msg = `${diff}일 후 교체`; }
+      const row = document.createElement('div');
+      row.className = 'yogurt-log-item';
+      row.innerHTML = `
+        <span class="ydate">🥛 입고 ${l.filled} → 교체 ${l.remove}</span>
+        <span class="reminder-badge ${badgeCls}">${msg}</span>`;
+      logList.appendChild(row);
+    });
+  }
+
+  // 이번 주 전체 일정
+  const order = [1,2,3,4,5,6,0];
+  order.forEach(dayIdx => {
+    const s = weeklySchedule.find(w => w.day === dayIdx);
+    if (!s) return;
+    const isToday    = dayIdx === todayIdx;
+    const isTomorrow = dayIdx === tomorrow;
+    const card = document.createElement('div');
+    card.className = 'reminder-card ' + (isToday ? 'today' : isTomorrow ? 'soon' : 'normal');
+    const badge = isToday ? '오늘' : isTomorrow ? '내일' : DAYS[dayIdx] + '요일';
+    const badgeCls = isToday ? 'rb-today' : isTomorrow ? 'rb-soon' : 'rb-normal';
+    card.innerHTML = `
+      <span class="reminder-badge ${badgeCls}">${badge}</span>
+      <div class="reminder-title">${s.icon} ${s.title}</div>
+      <div class="reminder-detail">${s.detail}</div>`;
+    weekEl.appendChild(card);
+  });
+}
+
+/* ════════════════════════════════════════════
+   초기화
+════════════════════════════════════════════ */
+// 요거트 날짜 기본값
+document.getElementById('yogurt-date').value = now.toISOString().split('T')[0];
+
+// 유통기한 탭 초기화 (기존과 동일)
+if (getUrl()) {
+  setDot('connected');
+  document.getElementById('scriptUrl').value = getUrl();
+  syncFromSheet();
+} else {
+  renderExpiry();
+}
+
+// 체크리스트 미리 렌더
+renderChecklist();
 </script>
 </body>
 </html>
