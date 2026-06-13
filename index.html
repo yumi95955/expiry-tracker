@@ -528,6 +528,28 @@
 
 <!-- ══════════════ 탭3: 에이전트 ══════════════ -->
 <div id="tab-agents" class="tab-content">
+  <!-- API 키 설정 카드 -->
+  <div class="card" id="apiKeyCard">
+    <div class="connect-header" onclick="toggleApiKey()">
+      <div class="connect-header-left">
+        <div class="dot" id="apiKeyDot"></div>
+        <span id="apiKeyLabel">Claude API 키 설정</span>
+      </div>
+      <span class="chevron" id="apiKeyChevron">▼</span>
+    </div>
+    <div class="connect-body hidden" id="apiKeyBody">
+      <input type="password" id="apiKeyInput" placeholder="sk-ant-api03-..." autocomplete="off" />
+      <div class="connect-btns">
+        <button class="btn btn-primary" onclick="saveApiKey()">저장</button>
+        <button class="btn btn-danger"  onclick="clearApiKey()">삭제</button>
+      </div>
+      <div class="sync-msg" id="apiKeyMsg"></div>
+      <div style="font-size:0.78rem;color:#aaa;line-height:1.6">
+        키는 이 기기의 localStorage에만 저장되며 외부로 전송되지 않습니다.
+      </div>
+    </div>
+  </div>
+
   <div class="agent-selector">
     <button class="agent-chip selected" onclick="selectAgent(0, this)">📦 발주도우미</button>
     <button class="agent-chip" onclick="selectAgent(1, this)">📅 리마인드봇</button>
@@ -1052,6 +1074,43 @@ const agents = [
   }
 ];
 
+/* API 키 관리 */
+const API_KEY_STORAGE = 'claude_api_key';
+function getApiKey()     { return localStorage.getItem(API_KEY_STORAGE) || ''; }
+function saveApiKey() {
+  const val = document.getElementById('apiKeyInput').value.trim();
+  if (!val) { setApiKeyMsg('키를 입력해 주세요.', 'err'); return; }
+  localStorage.setItem(API_KEY_STORAGE, val);
+  document.getElementById('apiKeyInput').value = '';
+  updateApiKeyDot();
+  setApiKeyMsg('저장됐습니다.', 'ok');
+}
+function clearApiKey() {
+  localStorage.removeItem(API_KEY_STORAGE);
+  document.getElementById('apiKeyInput').value = '';
+  updateApiKeyDot();
+  setApiKeyMsg('삭제됐습니다.', '');
+}
+function toggleApiKey() {
+  const body = document.getElementById('apiKeyBody');
+  const chev = document.getElementById('apiKeyChevron');
+  const open = !body.classList.contains('hidden');
+  body.classList.toggle('hidden', open);
+  chev.classList.toggle('open', !open);
+}
+function updateApiKeyDot() {
+  const dot   = document.getElementById('apiKeyDot');
+  const label = document.getElementById('apiKeyLabel');
+  const has   = !!getApiKey();
+  dot.className   = 'dot' + (has ? ' connected' : '');
+  label.textContent = has ? 'Claude API 키 설정됨' : 'Claude API 키 설정';
+}
+function setApiKeyMsg(text, type) {
+  const el = document.getElementById('apiKeyMsg');
+  el.textContent = text;
+  el.className   = 'sync-msg' + (type ? ' ' + type : '');
+}
+
 let selectedAgentIdx  = 0;
 const chatHistories   = [[], [], []];
 
@@ -1126,10 +1185,23 @@ async function sendChat() {
     ...history.map(m => ({ role: m.role === 'user' ? 'user' : 'assistant', content: m.content }))
   ];
 
+  const apiKey = getApiKey();
+  if (!apiKey) {
+    area.removeChild(loading);
+    history.push({ role: 'bot', content: 'API 키가 설정되지 않았어요. 상단 "Claude API 키 설정"을 열어 키를 저장해 주세요.' });
+    renderChat();
+    return;
+  }
+
   try {
     const res  = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 1000,
@@ -1258,6 +1330,9 @@ function renderReminders() {
 /* ════════════════════════════════════════════
    초기화
 ════════════════════════════════════════════ */
+// API 키 dot 초기 상태
+updateApiKeyDot();
+
 // 요거트 날짜 기본값
 document.getElementById('yogurt-date').value = now.toISOString().split('T')[0];
 
