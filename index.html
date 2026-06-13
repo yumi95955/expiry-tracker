@@ -711,6 +711,7 @@ async function syncAllFromSheet() {
   if (!getUrl()) return;
 
   await loadChecklistFromSheet();
+  renderChecklist();
 
   try {
     const yg = await apiGet({ action: 'yogurt_load' });
