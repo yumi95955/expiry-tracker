@@ -2,8 +2,7 @@
  * 제로초이스 무인 편의점 - Google Apps Script
  *
  * 시트 탭 구조:
- *   [기본 시트]           A=매장정보 B=카테고리 C=상품이름 D=바코드 E=단위 F=재고수량 G=입고가 H=판매가 I=과세여부
- *   [재고수량및유통기한]  B=상품이름 C=바코드 D=재고수량 H=유통기한  ← 상품 목록 읽기에 사용
+ *   [재고수량및유통기한]  B=상품이름  D=재고수량  H=유통기한
  *   [체크리스트]          A=key  B=checked  C=savedDate
  *   [요거트기록]          A=filled  B=remove
  *   [에이전트기록]        A=agentIdx  B=role  C=content  D=timestamp
@@ -11,17 +10,15 @@
  * 배포 설정: 실행 계정 = 나, 액세스 권한 = 모든 사용자
  */
 
-const SHEET_NAME      = 'Sheet1';          // 기본 상품 시트 (참조용)
-const SHEET_EXPIRY    = '재고수량및유통기한'; // 상품 목록·유통기한 읽기에 사용
+const SHEET_NAME      = '재고수량및유통기한';
 const SHEET_CHECKLIST = '체크리스트';
 const SHEET_YOGURT    = '요거트기록';
 const SHEET_AGENT     = '에이전트기록';
 
-// 재고수량및유통기한 탭 열 번호
-const COL_EXP_NAME = 2;  // B열: 상품이름
-const COL_EXP_QTY  = 4;  // D열: 재고수량
-const COL_EXP_DATE = 8;  // H열: 유통기한
-const HEADER_ROW   = 1;
+const COL_NAME   = 2;  // B열: 상품이름
+const COL_QTY    = 4;  // D열: 재고수량
+const COL_DATE   = 8;  // H열: 유통기한
+const HEADER_ROW = 1;
 
 // ── GET: 읽기 + 쓰기 모두 처리 ───────────────────────────────
 // 브라우저 fetch의 POST는 Apps Script 리다이렉트에서 GET으로 변환되므로
@@ -67,18 +64,18 @@ function doPost(e) {
   }
 }
 
-// ── 상품 목록 (재고수량및유통기한 탭) ─────────────────────────
+// ── 상품 목록 ─────────────────────────────────────────────────
 function listItems() {
-  const sheet   = getSheet(SHEET_EXPIRY);
+  const sheet   = getSheet(SHEET_NAME);
   const lastRow = sheet.getLastRow();
   if (lastRow <= HEADER_ROW) return { items: [] };
 
   const numRows  = lastRow - HEADER_ROW;
   const startRow = HEADER_ROW + 1;
 
-  const nameData = sheet.getRange(startRow, COL_EXP_NAME, numRows, 1).getValues();
-  const qtyData  = sheet.getRange(startRow, COL_EXP_QTY,  numRows, 1).getValues();
-  const dateData = sheet.getRange(startRow, COL_EXP_DATE, numRows, 1).getValues();
+  const nameData = sheet.getRange(startRow, COL_NAME, numRows, 1).getValues();
+  const qtyData  = sheet.getRange(startRow, COL_QTY,  numRows, 1).getValues();
+  const dateData = sheet.getRange(startRow, COL_DATE, numRows, 1).getValues();
 
   const items = nameData.map((nameRow, i) => {
     const name = String(nameRow[0] || '').trim();
@@ -120,7 +117,7 @@ function updateQty(params) {
   if (isNaN(qty)) throw new Error('qty 파라미터가 숫자가 아님');
   const rowNum = parseInt(id.replace('sheet_', ''), 10);
   if (!rowNum)    throw new Error('row 번호를 파싱할 수 없음: ' + id);
-  getSheet(SHEET_EXPIRY).getRange(rowNum, COL_EXP_QTY).setValue(qty);
+  getSheet(SHEET_NAME).getRange(rowNum, COL_QTY).setValue(qty);
   return { ok: true, id, qty };
 }
 
