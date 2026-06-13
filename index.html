@@ -599,7 +599,9 @@ function switchTab(name, btnEl) {
   btnEl.classList.add('active');
   if (name === 'agents') { renderAgentInfo(); renderChat(); }
   if (name === 'reminder') renderReminders();
-  if (name === 'checklist') renderChecklist();
+  if (name === 'checklist') {
+    loadChecklistFromSheet().then(() => renderChecklist());
+  }
 }
 
 /* ════════════════════════════════════════════
@@ -703,17 +705,11 @@ async function syncFromSheet() {
 }
 
 async function syncAllFromSheet() {
-  await syncFromSheet();
+  // 각 로드를 독립 try/catch로 감싸서 한 쪽 실패가 나머지를 막지 않게 함
+  try { await syncFromSheet(); } catch(e) {}
   if (!getUrl()) return;
 
-  try {
-    const cl = await apiGet({ action: 'checklist_load' });
-    if (cl.state && Object.keys(cl.state).length > 0) {
-      localStorage.setItem(CHECK_KEY, JSON.stringify(cl.state));
-      if (cl.savedDate) localStorage.setItem(CHECK_DATE_KEY, cl.savedDate);
-      renderChecklist();
-    }
-  } catch(e) {}
+  await loadChecklistFromSheet();
 
   try {
     const yg = await apiGet({ action: 'yogurt_load' });
@@ -729,6 +725,18 @@ async function syncAllFromSheet() {
           content: m.role === 'bot' ? m.content.replace(/\n/g, '<br>') : m.content
         }));
       });
+    }
+  } catch(e) {}
+}
+
+// 체크리스트만 시트에서 로드 — 탭 전환·앱 복귀 시 단독 호출 가능
+async function loadChecklistFromSheet() {
+  if (!getUrl()) return;
+  try {
+    const cl = await apiGet({ action: 'checklist_load' });
+    if (cl.state) {
+      localStorage.setItem(CHECK_KEY, JSON.stringify(cl.state));
+      if (cl.savedDate) localStorage.setItem(CHECK_DATE_KEY, cl.savedDate);
     }
   } catch(e) {}
 }
@@ -1402,6 +1410,13 @@ function renderReminders() {
 ════════════════════════════════════════════ */
 // API 키 dot 초기 상태
 updateApiKeyDot();
+
+// 모바일에서 앱을 백그라운드 → 포그라운드로 복귀 시 체크리스트 자동 갱신
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && getUrl()) {
+    loadChecklistFromSheet().then(() => renderChecklist());
+  }
+});
 
 // 요거트 날짜 기본값
 document.getElementById('yogurt-date').value = now.toISOString().split('T')[0];
