@@ -1110,7 +1110,12 @@ if (daySpecific[todayIdx]) {
 }
 
 function todayDateStr() {
-  return now.toISOString().split('T')[0];
+  // toISOString()은 UTC 기준이라 한국(UTC+9) 자정~오전9시엔 어제 날짜를 반환하므로
+  // 로컬 날짜 기준으로 직접 계산
+  const d = new Date();
+  return d.getFullYear() + '-'
+    + String(d.getMonth() + 1).padStart(2, '0') + '-'
+    + String(d.getDate()).padStart(2, '0');
 }
 
 function isSatOrSun(dateStr) {
@@ -1190,6 +1195,7 @@ function resetChecklist() {
   if (confirm('오늘 체크리스트를 초기화할까요?')) {
     localStorage.removeItem(CHECK_KEY);
     renderChecklist();
+    sheetSaveChecklist(); // 시트에도 초기화 상태 반영 (안하면 다음 로드 시 체크 복원됨)
   }
 }
 
